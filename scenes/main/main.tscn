@@ -1,0 +1,123 @@
+[gd_scene format=3 uid="uid://c6sym61uq8inm"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="SceneContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="UIOverlays" type="CanvasLayer" parent="."]
+layer = 100
+follow_viewport_enabled = true
+
+[node name="LoadingOverlay" type="Control" parent="UIOverlays"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LoadingBackground" type="ColorRect" parent="UIOverlays/LoadingOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.8)
+
+[node name="LoadingSpinner" type="AnimationPlayer" parent="UIOverlays/LoadingOverlay"]
+
+[node name="PauseOverlay" type="Control" parent="UIOverlays"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PauseBackground" type="ColorRect" parent="UIOverlays/PauseOverlay"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="PauseMenu" type="VBoxContainer" parent="UIOverlays/PauseOverlay"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ResumeButton" type="Button" parent="UIOverlays/PauseOverlay/PauseMenu"]
+layout_mode = 2
+
+[node name="SettingsButton" type="Button" parent="UIOverlays/PauseOverlay/PauseMenu"]
+layout_mode = 2
+
+[node name="QuitButton" type="Button" parent="UIOverlays/PauseOverlay/PauseMenu"]
+layout_mode = 2
+
+[node name="ToastContainer" type="VBoxContainer" parent="UIOverlays"]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="DebugOverlay" type="CanvasLayer" parent="."]
+visible = false
+
+[node name="DebugPanel" type="Control" parent="DebugOverlay"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="DebugBackground" type="ColorRect" parent="DebugOverlay/DebugPanel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="DebugInfo" type="VBoxContainer" parent="DebugOverlay/DebugPanel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="StateLabel" type="Label" parent="DebugOverlay/DebugPanel/DebugInfo"]
+layout_mode = 2
+
+[node name="PerformanceLabel" type="Label" parent="DebugOverlay/DebugPanel/DebugInfo"]
+layout_mode = 2
+
+[node name="CroakerLabel" type="Label" parent="DebugOverlay/DebugPanel/DebugInfo"]
+layout_mode = 2
+
+[node name="DebugButtons" type="HBoxContainer" parent="DebugOverlay/DebugPanel/DebugInfo"]
+layout_mode = 2
+
+[node name="SceneButton1" type="Button" parent="DebugOverlay/DebugPanel/DebugInfo/DebugButtons"]
+layout_mode = 2
+
+[node name="SceneButton2" type="Button" parent="DebugOverlay/DebugPanel/DebugInfo/DebugButtons"]
+layout_mode = 2
+
+[node name="SceneButton3" type="Button" parent="DebugOverlay/DebugPanel/DebugInfo/DebugButtons"]
+layout_mode = 2
+
+[node name="AudioManager" type="Node" parent="."]
+
+[node name="MusicPlayer" type="AudioStreamPlayer2D" parent="AudioManager"]
+
+[node name="FXPlayer" type="AudioStreamPlayer2D" parent="AudioManager"]
+
+[node name="UIPlayer" type="AudioStreamPlayer2D" parent="AudioManager"]
