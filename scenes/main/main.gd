@@ -1,7 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://c6sym61uq8inm"]
-
-[sub_resource type="GDScript" id="GDScript_vom5j"]
-script/source = "# Main.gd - Persistent Root Scene Controller
+# Main.gd - Persistent Root Scene Controller
 # Handles: Scene container management, overlay systems, boot sequence
 # This scene stays loaded throughout the entire game lifecycle
 extends Control
@@ -75,7 +72,7 @@ var active_toasts: Array[Control] = []
 # ============================================================================
 
 func _ready() -> void:
-	print(\"[Main] Starting boot sequence...\")
+	print("[Main] Starting boot sequence...")
 	
 	# Set up as persistent root
 	set_process_mode(Node.PROCESS_MODE_ALWAYS)
@@ -92,10 +89,10 @@ func _ready() -> void:
 	# Start boot sequence
 	await _perform_boot_sequence()
 	
-	print(\"[Main] Boot complete - game ready\")
+	print("[Main] Boot complete - game ready")
 
 func _setup_initial_ui_state() -> void:
-	\"\"\"Configure initial visibility and settings for UI elements\"\"\"
+	"""Configure initial visibility and settings for UI elements"""
 	# Hide overlays initially
 	loading_overlay.visible = false
 	pause_overlay.visible = false
@@ -113,15 +110,7 @@ func _setup_initial_ui_state() -> void:
 	scene_container.mouse_filter = Control.MOUSE_FILTER_PASS
 
 func _connect_signals() -> void:
-	\"\"\"Connect to manager signals and UI events\"\"\"
-	# GameManager signals
-	if GameManager:
-		GameManager.scene_transition_started.connect(_on_scene_transition_started)
-		GameManager.scene_transition_finished.connect(_on_scene_transition_finished)
-		GameManager.fade_out_finished.connect(_on_fade_out_finished)
-		GameManager.fade_in_finished.connect(_on_fade_in_finished)
-		GameManager.game_state_changed.connect(_on_game_state_changed)
-	
+	"""Connect to manager signals and UI events"""
 	# Pause menu buttons
 	resume_button.pressed.connect(_on_resume_pressed)
 	settings_button.pressed.connect(_on_settings_pressed)
@@ -129,34 +118,65 @@ func _connect_signals() -> void:
 	
 	# Debug buttons (if they exist)
 	_connect_debug_buttons()
+	
+	# Connect to singletons when they're ready (deferred)
+	call_deferred("_connect_to_singletons")
+
+func _connect_to_singletons() -> void:
+	"""Connect to singleton signals once they're available"""
+	# Wait for GameManager to be ready
+	if has_node("/root/GameManager"):
+		var game_manager = get_node("/root/GameManager")
+		game_manager.scene_transition_started.connect(_on_scene_transition_started)
+		game_manager.scene_transition_finished.connect(_on_scene_transition_finished)
+		game_manager.fade_out_finished.connect(_on_fade_out_finished)
+		game_manager.fade_in_finished.connect(_on_fade_in_finished)
+		game_manager.game_state_changed.connect(_on_game_state_changed)
+		print("[Main] Connected to GameManager signals")
+	else:
+		print("[Main] GameManager not yet available, will retry...")
+		# Retry connection after a short delay
+		get_tree().create_timer(0.1).timeout.connect(_connect_to_singletons)
 
 func _connect_debug_buttons() -> void:
-	\"\"\"Connect debug shortcut buttons if they exist\"\"\"
+	"""Connect debug shortcut buttons if they exist"""
 	var debug_buttons = $DebugOverlay/DebugPanel/DebugInfo/DebugButtons
 	if debug_buttons:
-		var scene_button1 = debug_buttons.get_node_or_null(\"SceneButton1\")
-		var scene_button2 = debug_buttons.get_node_or_null(\"SceneButton2\") 
-		var scene_button3 = debug_buttons.get_node_or_null(\"SceneButton3\")
+		var scene_button1 = debug_buttons.get_node_or_null("SceneButton1")
+		var scene_button2 = debug_buttons.get_node_or_null("SceneButton2") 
+		var scene_button3 = debug_buttons.get_node_or_null("SceneButton3")
 		
 		if scene_button1:
-			scene_button1.text = \"Menu\"
-			scene_button1.pressed.connect(func(): GameManager.transition_to_scene(\"main_menu\"))
+			scene_button1.text = "Menu"
+			scene_button1.pressed.connect(_debug_go_to_menu)
 		if scene_button2:
-			scene_button2.text = \"Paddock\"
-			scene_button2.pressed.connect(func(): GameManager.transition_to_scene(\"lily_paddock\"))
+			scene_button2.text = "Paddock"
+			scene_button2.pressed.connect(_debug_go_to_paddock)
 		if scene_button3:
-			scene_button3.text = \"Run\"
-			scene_button3.pressed.connect(func(): GameManager.transition_to_scene(\"run_hub\"))
+			scene_button3.text = "Run"
+			scene_button3.pressed.connect(_debug_go_to_run)
+
+func _debug_go_to_menu() -> void:
+	if has_node("/root/GameManager"):
+		get_node("/root/GameManager").transition_to_scene("main_menu")
+
+func _debug_go_to_paddock() -> void:
+	if has_node("/root/GameManager"):
+		get_node("/root/GameManager").transition_to_scene("lily_paddock")
+
+func _debug_go_to_run() -> void:
+	if has_node("/root/GameManager"):
+		get_node("/root/GameManager").transition_to_scene("run_hub")
 
 func _setup_input_handling() -> void:
-	\"\"\"Configure input handling for the root scene\"\"\"
+	"""Configure input handling for the root scene"""
 	# Ensure we can receive input events
 	set_process_input(true)
 	set_process_unhandled_input(true)
 
 func _perform_boot_sequence() -> void:
-	\"\"\"Handle initial game startup\"\"\"
-	show_loading_overlay(\"Initializing...\")
+	"""Handle initial game startup"""
+	show_loading_overlay("Initializing...")
 	
 	# Simulate boot time for any heavy initialization
 	await get_tree().create_timer(0.5).timeout
@@ -165,26 +185,28 @@ func _perform_boot_sequence() -> void:
 	_initialize_audio_system()
 	
 	# Update loading text
-	update_loading_text(\"Loading game data...\")
+	update_loading_text("Loading game data...")
 	await get_tree().create_timer(0.3).timeout
 	
 	# Any other initialization
-	update_loading_text(\"Starting game...\")
+	update_loading_text("Starting game...")
 	await get_tree().create_timer(0.2).timeout
 	
 	hide_loading_overlay()
 	boot_complete = true
 	
-	# Let GameManager know we're ready
-	if GameManager and GameManager.current_state == GameManager.GameState.STARTUP:
-		show_toast(\"Welcome to TadPole Position!\", 2.0)
+	# Let GameManager know we're ready (if available)
+	if has_node("/root/GameManager"):
+		var game_manager = get_node("/root/GameManager")
+		if game_manager.current_state == game_manager.GameState.STARTUP:
+			show_toast("Welcome to TadPole Position!", 2.0)
 
 # ============================================================================
 # SCENE CONTAINER MANAGEMENT
 # ============================================================================
 
 func set_scene_instance(scene_instance: Node) -> void:
-	\"\"\"Replace the current scene instance in the container\"\"\"
+	"""Replace the current scene instance in the container"""
 	# Clear existing scene
 	if current_scene_instance and is_instance_valid(current_scene_instance):
 		current_scene_instance.queue_free()
@@ -193,14 +215,14 @@ func set_scene_instance(scene_instance: Node) -> void:
 	if scene_instance:
 		scene_container.add_child(scene_instance)
 		current_scene_instance = scene_instance
-		print(\"[Main] Scene instance set: %s\" % scene_instance.name)
+		print("[Main] Scene instance set: %s" % scene_instance.name)
 
 func get_current_scene() -> Node:
-	\"\"\"Get the currently loaded scene instance\"\"\"
+	"""Get the currently loaded scene instance"""
 	return current_scene_instance
 
 func clear_scene_container() -> void:
-	\"\"\"Remove current scene from container\"\"\"
+	"""Remove current scene from container"""
 	if current_scene_instance and is_instance_valid(current_scene_instance):
 		current_scene_instance.queue_free()
 		current_scene_instance = null
@@ -209,8 +231,8 @@ func clear_scene_container() -> void:
 # LOADING OVERLAY SYSTEM
 # ============================================================================
 
-func show_loading_overlay(text: String = \"Loading...\") -> void:
-	\"\"\"Display loading overlay with optional text\"\"\"
+func show_loading_overlay(text: String = "Loading...") -> void:
+	"""Display loading overlay with optional text"""
 	if is_loading_visible:
 		return
 	
@@ -218,13 +240,13 @@ func show_loading_overlay(text: String = \"Loading...\") -> void:
 	is_loading_visible = true
 	
 	# Start spinner animation if available
-	if loading_spinner and loading_spinner.has_animation(\"spin\"):
-		loading_spinner.play(\"spin\")
+	if loading_spinner and loading_spinner.has_animation("spin"):
+		loading_spinner.play("spin")
 	
-	print(\"[Main] Loading overlay shown: %s\" % text)
+	print("[Main] Loading overlay shown: %s" % text)
 
 func hide_loading_overlay() -> void:
-	\"\"\"Hide the loading overlay\"\"\"
+	"""Hide the loading overlay"""
 	if not is_loading_visible:
 		return
 	
@@ -235,11 +257,11 @@ func hide_loading_overlay() -> void:
 	if loading_spinner:
 		loading_spinner.stop()
 	
-	print(\"[Main] Loading overlay hidden\")
+	print("[Main] Loading overlay hidden")
 
 func update_loading_text(text: String) -> void:
-	\"\"\"Update loading overlay text if label exists\"\"\"
-	var loading_label = loading_overlay.get_node_or_null(\"LoadingLabel\")
+	"""Update loading overlay text if label exists"""
+	var loading_label = loading_overlay.get_node_or_null("LoadingLabel")
 	if loading_label and loading_label is Label:
 		loading_label.text = text
 
@@ -248,14 +270,14 @@ func update_loading_text(text: String) -> void:
 # ============================================================================
 
 func toggle_pause() -> void:
-	\"\"\"Toggle pause state\"\"\"
+	"""Toggle pause state"""
 	if is_paused_by_user:
 		resume_game()
 	else:
 		pause_game()
 
 func pause_game() -> void:
-	\"\"\"Pause the game and show pause menu\"\"\"
+	"""Pause the game and show pause menu"""
 	if is_paused_by_user:
 		return
 		
@@ -266,10 +288,10 @@ func pause_game() -> void:
 	# Focus resume button for controller support
 	resume_button.grab_focus()
 	
-	print(\"[Main] Game paused by user\")
+	print("[Main] Game paused by user")
 
 func resume_game() -> void:
-	\"\"\"Resume the game and hide pause menu\"\"\"
+	"""Resume the game and hide pause menu"""
 	if not is_paused_by_user:
 		return
 		
@@ -277,14 +299,14 @@ func resume_game() -> void:
 	pause_overlay.visible = false
 	get_tree().paused = false
 	
-	print(\"[Main] Game resumed\")
+	print("[Main] Game resumed")
 
 # ============================================================================
 # TOAST NOTIFICATION SYSTEM
 # ============================================================================
 
 func show_toast(message: String, duration: float = TOAST_DURATION) -> void:
-	\"\"\"Display a temporary toast notification\"\"\"
+	"""Display a temporary toast notification"""
 	# Remove oldest toast if at limit
 	if active_toasts.size() >= MAX_TOASTS:
 		_remove_toast(active_toasts[0])
@@ -305,7 +327,7 @@ func show_toast(message: String, duration: float = TOAST_DURATION) -> void:
 	)
 
 func _create_toast_ui(message: String) -> Control:
-	\"\"\"Create the UI for a toast notification\"\"\"
+	"""Create the UI for a toast notification"""
 	var toast = PanelContainer.new()
 	toast.modulate.a = 0.0  # Start invisible for fade-in
 	
@@ -322,26 +344,26 @@ func _create_toast_ui(message: String) -> Control:
 	style.border_width_bottom = 2
 	style.border_color = Color(0.6, 0.8, 1.0, 0.8)
 	
-	toast.add_theme_stylebox_override(\"panel\", style)
+	toast.add_theme_stylebox_override("panel", style)
 	
 	# Add label
 	var label = Label.new()
 	label.text = message
-	label.add_theme_color_override(\"font_color\", Color.WHITE)
+	label.add_theme_color_override("font_color", Color.WHITE)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast.add_child(label)
 	
 	return toast
 
 func _animate_toast_in(toast: Control) -> void:
-	\"\"\"Animate toast fade-in\"\"\"
+	"""Animate toast fade-in"""
 	var tween = create_tween()
-	tween.tween_property(toast, \"modulate:a\", 1.0, 0.3)
-	tween.tween_property(toast, \"modulate:a\", 1.0, TOAST_DURATION - 0.6)
-	tween.tween_property(toast, \"modulate:a\", 0.0, 0.3)
+	tween.tween_property(toast, "modulate:a", 1.0, 0.3)
+	tween.tween_property(toast, "modulate:a", 1.0, TOAST_DURATION - 0.6)
+	tween.tween_property(toast, "modulate:a", 0.0, 0.3)
 
 func _remove_toast(toast: Control) -> void:
-	\"\"\"Remove a toast from the display\"\"\"
+	"""Remove a toast from the display"""
 	if toast in active_toasts:
 		active_toasts.erase(toast)
 	
@@ -353,21 +375,21 @@ func _remove_toast(toast: Control) -> void:
 # ============================================================================
 
 func _initialize_audio_system() -> void:
-	\"\"\"Set up the audio players\"\"\"
+	"""Set up the audio players"""
 	# Configure audio players
-	music_player.bus = \"Music\"
-	sfx_player.bus = \"SFX\"
-	ui_player.bus = \"UI\"
+	music_player.bus = "Music"
+	sfx_player.bus = "SFX"
+	ui_player.bus = "UI"
 	
 	# Set reasonable volumes
 	music_player.volume_db = -10
 	sfx_player.volume_db = -5
 	ui_player.volume_db = -8
 	
-	print(\"[Main] Audio system initialized\")
+	print("[Main] Audio system initialized")
 
-func play_ui_sound(sound_name: String) -> void:
-	\"\"\"Play a UI sound effect\"\"\"
+func play_ui_sound(_sound_name: String) -> void:
+	"""Play a UI sound effect"""
 	# TODO: Load and play UI sound based on name
 	# For now, placeholder
 	pass
@@ -377,15 +399,15 @@ func play_ui_sound(sound_name: String) -> void:
 # ============================================================================
 
 func toggle_debug_overlay() -> void:
-	\"\"\"Toggle debug information display\"\"\"
+	"""Toggle debug information display"""
 	if not DEBUG_ENABLED:
 		return
 		
 	debug_overlay.visible = !debug_overlay.visible
-	print(\"[Main] Debug overlay toggled: %s\" % debug_overlay.visible)
+	print("[Main] Debug overlay toggled: %s" % debug_overlay.visible)
 
 func _update_debug_info() -> void:
-	\"\"\"Update debug information display\"\"\"
+	"""Update debug information display"""
 	if not DEBUG_ENABLED or not debug_overlay.visible:
 		return
 	
@@ -400,31 +422,38 @@ func _update_debug_info() -> void:
 	
 	# Update labels
 	if state_label:
-		var state_name = \"Unknown\"
-		if GameManager:
-			state_name = GameManager.GameState.keys()[GameManager.current_state]
-		state_label.text = \"State: %s\" % state_name
+		var state_name = "Unknown"
+		if has_node("/root/GameManager"):
+			var game_manager = get_node("/root/GameManager")
+			state_name = game_manager.GameState.keys()[game_manager.current_state]
+		state_label.text = "State: %s" % state_name
 	
 	if performance_label:
-		performance_label.text = \"FPS: %.1f\\nMemory: %.1f MB\" % [
+		var memory_mb = OS.get_static_memory_peak_usage() / 1048576.0
+		performance_label.text = "FPS: %.1f\nMemory: %.1f MB" % [
 			current_fps,
-			OS.get_static_memory_usage_by_type()[\"Object\"] / 1048576.0
+			memory_mb
 		]
 	
-	if croaker_label and CroakerManager:
-		var run_croaker = CroakerManager.get_run_croaker()
-		var croaker_info = \"No Croaker\" if not run_croaker else run_croaker.croaker_name
-		croaker_label.text = \"Active: %s\\nTotal: %d\" % [
-			croaker_info,
-			CroakerManager.get_croaker_count()
-		]
+	if croaker_label:
+		var croaker_info = "No Croaker"
+		var total_count = 0
+		
+		if has_node("/root/CroakerManager"):
+			var croaker_manager = get_node("/root/CroakerManager")
+			var run_croaker = croaker_manager.get_run_croaker()
+			if run_croaker:
+				croaker_info = run_croaker.croaker_name
+			total_count = croaker_manager.get_croaker_count()
+		
+		croaker_label.text = "Active: %s\nTotal: %d" % [croaker_info, total_count]
 
 # ============================================================================
 # INPUT HANDLING
 # ============================================================================
 
 func _input(event: InputEvent) -> void:
-	\"\"\"Handle global input events\"\"\"
+	"""Handle global input events"""
 	if not event is InputEventKey or not event.pressed:
 		return
 	
@@ -440,78 +469,82 @@ func _input(event: InputEvent) -> void:
 		
 		# Debug shortcuts (only in debug builds)
 		KEY_F1:
-			if DEBUG_ENABLED and GameManager:
-				GameManager.transition_to_scene(\"main_menu\")
+			if DEBUG_ENABLED and has_node("/root/GameManager"):
+				get_node("/root/GameManager").transition_to_scene("main_menu")
 		KEY_F2:
-			if DEBUG_ENABLED and GameManager:
-				GameManager.transition_to_scene(\"lily_paddock\")
+			if DEBUG_ENABLED and has_node("/root/GameManager"):
+				get_node("/root/GameManager").transition_to_scene("lily_paddock")
 		KEY_F3:
-			if DEBUG_ENABLED and GameManager:
-				GameManager.transition_to_scene(\"run_hub\")
+			if DEBUG_ENABLED and has_node("/root/GameManager"):
+				get_node("/root/GameManager").transition_to_scene("run_hub")
 
 # ============================================================================
 # SIGNAL HANDLERS
 # ============================================================================
 
-func _on_scene_transition_started(from_scene: String, to_scene: String) -> void:
-	\"\"\"Handle scene transition start\"\"\"
-	show_loading_overlay(\"Loading %s...\" % to_scene.replace(\"_\", \" \").capitalize())
+func _on_scene_transition_started(_from_scene: String, to_scene: String) -> void:
+	"""Handle scene transition start"""
+	show_loading_overlay("Loading %s..." % to_scene.replace("_", " ").capitalize())
 
 func _on_scene_transition_finished(scene_name: String) -> void:
-	\"\"\"Handle scene transition completion\"\"\"
+	"""Handle scene transition completion"""
 	hide_loading_overlay()
-	show_toast(\"Entered %s\" % scene_name.replace(\"_\", \" \").capitalize(), 1.5)
+	show_toast("Entered %s" % scene_name.replace("_", " ").capitalize(), 1.5)
 
 func _on_fade_out_finished() -> void:
-	\"\"\"Handle fade out completion\"\"\"
+	"""Handle fade out completion"""
 	# Additional logic if needed during fade out
 	pass
 
 func _on_fade_in_finished() -> void:
-	\"\"\"Handle fade in completion\"\"\"
+	"""Handle fade in completion"""
 	# Additional logic if needed during fade in
 	pass
 
-func _on_game_state_changed(old_state: GameManager.GameState, new_state: GameManager.GameState) -> void:
-	\"\"\"Handle game state changes\"\"\"
-	print(\"[Main] Game state changed: %s -> %s\" % [
-		GameManager.GameState.keys()[old_state],
-		GameManager.GameState.keys()[new_state]
+func _on_game_state_changed(old_state, new_state) -> void:
+	"""Handle game state changes"""
+	if not has_node("/root/GameManager"):
+		return
+		
+	var game_manager = get_node("/root/GameManager")
+	print("[Main] Game state changed: %s -> %s" % [
+		game_manager.GameState.keys()[old_state],
+		game_manager.GameState.keys()[new_state]
 	])
 	
 	# Handle state-specific UI changes
 	match new_state:
-		GameManager.GameState.PAUSED:
+		game_manager.GameState.PAUSED:
 			if not is_paused_by_user:  # Only if not already paused by user
 				pause_game()
-		GameManager.GameState.MAIN_MENU, GameManager.GameState.LILY_PADDOCK:
+		game_manager.GameState.MAIN_MENU, game_manager.GameState.LILY_PADDOCK:
 			if is_paused_by_user:  # Resume if user-paused
 				resume_game()
 
 # Pause menu button handlers
 func _on_resume_pressed() -> void:
-	\"\"\"Handle resume button press\"\"\"
-	play_ui_sound(\"click\")
+	"""Handle resume button press"""
+	play_ui_sound("click")
 	resume_game()
 
 func _on_settings_pressed() -> void:
-	\"\"\"Handle settings button press\"\"\"
-	play_ui_sound(\"click\")
-	if GameManager:
-		GameManager.push_modal_scene(\"settings\")
+	"""Handle settings button press"""
+	play_ui_sound("click")
+	if has_node("/root/GameManager"):
+		get_node("/root/GameManager").push_modal_scene("settings")
 
 func _on_quit_pressed() -> void:
-	\"\"\"Handle quit button press\"\"\"
-	play_ui_sound(\"click\")
-	if GameManager:
-		GameManager.quit_game()
+	"""Handle quit button press"""
+	play_ui_sound("click")
+	if has_node("/root/GameManager"):
+		get_node("/root/GameManager").quit_game()
 
 # ============================================================================
 # PROCESS UPDATES
 # ============================================================================
 
 func _process(_delta: float) -> void:
-	\"\"\"Update debug info and other per-frame systems\"\"\"
+	"""Update debug info and other per-frame systems"""
 	if DEBUG_ENABLED:
 		_update_debug_info()
 
@@ -525,7 +558,7 @@ func _process(_delta: float) -> void:
 # - clear_scene_container()
 
 # Loading System:
-# - show_loading_overlay(text: String = \"Loading...\")
+# - show_loading_overlay(text: String = "Loading...")
 # - hide_loading_overlay()
 # - update_loading_text(text: String)
 
@@ -542,127 +575,3 @@ func _process(_delta: float) -> void:
 
 # Audio:
 # - play_ui_sound(sound_name: String)
-"
-
-[node name="Main" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 1
-script = SubResource("GDScript_vom5j")
-
-[node name="SceneContainer" type="Control" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 1
-
-[node name="UIOverlays" type="CanvasLayer" parent="."]
-layer = 100
-follow_viewport_enabled = true
-
-[node name="LoadingOverlay" type="Control" parent="UIOverlays"]
-visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="LoadingBackground" type="ColorRect" parent="UIOverlays/LoadingOverlay"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 0.8)
-
-[node name="LoadingSpinner" type="AnimationPlayer" parent="UIOverlays/LoadingOverlay"]
-
-[node name="PauseOverlay" type="Control" parent="UIOverlays"]
-visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="PauseBackground" type="ColorRect" parent="UIOverlays/PauseOverlay"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="PauseMenu" type="VBoxContainer" parent="UIOverlays/PauseOverlay"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="ResumeButton" type="Button" parent="UIOverlays/PauseOverlay/PauseMenu"]
-layout_mode = 2
-
-[node name="SettingsButton" type="Button" parent="UIOverlays/PauseOverlay/PauseMenu"]
-layout_mode = 2
-
-[node name="QuitButton" type="Button" parent="UIOverlays/PauseOverlay/PauseMenu"]
-layout_mode = 2
-
-[node name="ToastContainer" type="VBoxContainer" parent="UIOverlays"]
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="DebugOverlay" type="CanvasLayer" parent="."]
-visible = false
-
-[node name="DebugPanel" type="Control" parent="DebugOverlay"]
-layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="DebugBackground" type="ColorRect" parent="DebugOverlay/DebugPanel"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="DebugInfo" type="VBoxContainer" parent="DebugOverlay/DebugPanel"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="StateLabel" type="Label" parent="DebugOverlay/DebugPanel/DebugInfo"]
-layout_mode = 2
-
-[node name="PerformanceLabel" type="Label" parent="DebugOverlay/DebugPanel/DebugInfo"]
-layout_mode = 2
-
-[node name="CroakerLabel" type="Label" parent="DebugOverlay/DebugPanel/DebugInfo"]
-layout_mode = 2
-
-[node name="DebugButtons" type="HBoxContainer" parent="DebugOverlay/DebugPanel/DebugInfo"]
-layout_mode = 2
-
-[node name="SceneButton1" type="Button" parent="DebugOverlay/DebugPanel/DebugInfo/DebugButtons"]
-layout_mode = 2
-
-[node name="SceneButton2" type="Button" parent="DebugOverlay/DebugPanel/DebugInfo/DebugButtons"]
-layout_mode = 2
-
-[node name="SceneButton3" type="Button" parent="DebugOverlay/DebugPanel/DebugInfo/DebugButtons"]
-layout_mode = 2
-
-[node name="AudioManager" type="Node" parent="."]
-
-[node name="MusicPlayer" type="AudioStreamPlayer2D" parent="AudioManager"]
-
-[node name="FXPlayer" type="AudioStreamPlayer2D" parent="AudioManager"]
-
-[node name="UIPlayer" type="AudioStreamPlayer2D" parent="AudioManager"]
