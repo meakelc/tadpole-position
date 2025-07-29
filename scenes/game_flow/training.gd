@@ -63,7 +63,7 @@ func _proceed_after_selection() -> void:
 	print("[Training] Proceeding after upgrade selection...")
 	# TODO: Check if more training rounds needed
 	# For now, go back to main menu
-	GameManager.change_scene("res://scenes/main_menu.tscn")
+	GameManager.change_scene("res://scenes/game_flow/pre_race.tscn")
 
 func _on_back_pressed() -> void:
 	print("[Training] Back button pressed - returning to main menu")
