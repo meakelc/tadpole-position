@@ -10,7 +10,7 @@ func _ready() -> void:
 	print("[Main] Main scene ready")
 	
 	# Set up UI
-	title_label.text = "TadPole Position - Main Menu"
+	title_label.text = "Tadpole Position - Main Menu"
 	scene_info_label.text = "Current Scene: " + GameManager.get_current_scene_name()
 	
 	# Connect test button
