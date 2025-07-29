@@ -10,7 +10,7 @@ func _ready() -> void:
 	print("[MainMenu] Main menu scene ready")
 	
 	# Set up UI elements
-	title_label.text = "TadPole Position"
+	title_label.text = "Tadpole Position"
 	start_button.text = "Start Race"
 	quit_button.text = "Quit"
 	

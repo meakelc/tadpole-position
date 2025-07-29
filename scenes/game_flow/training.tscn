@@ -1,0 +1,55 @@
+[gd_scene load_steps=2 format=3 uid="uid://cuxnemwhpk5wj"]
+
+[ext_resource type="Script" uid="uid://by3q7dqv2f44g" path="res://scenes/game_flow/training.gd" id="1_esuni"]
+
+[node name="Training" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_esuni")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -304.0
+offset_top = -44.5
+offset_right = 304.0
+offset_bottom = 44.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="InstructionLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "Choose an upgrade for your Croaker:"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="UpgradeContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="UpgradeButton1" type="Button" parent="VBoxContainer/UpgradeContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+
+[node name="UpgradeButton2" type="Button" parent="VBoxContainer/UpgradeContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+
+[node name="UpgradeButton3" type="Button" parent="VBoxContainer/UpgradeContainer"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="VBoxContainer"]
+custom_minimum_size = Vector2(150, 40)
+layout_mode = 2
+text = "Back to Main Menu"
