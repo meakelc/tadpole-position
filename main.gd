@@ -27,7 +27,7 @@ func _ready() -> void:
 func _on_test_button_pressed() -> void:
 	print("[Main] Test button pressed - attempting scene change")
 	# Test scene change (will fail gracefully if TestScene.tscn doesn't exist)
-	GameManager.change_scene("res://scenes/TestScene.tscn")
+	GameManager.change_scene("res://scenes/test_scene.tscn")
 
 func _update_scene_info() -> void:
 	if scene_info_label:
