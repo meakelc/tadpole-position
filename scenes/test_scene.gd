@@ -14,4 +14,4 @@ func _ready() -> void:
 
 func _on_back_button_pressed() -> void:
 	print("[TestScene] Back button pressed - returning to main")
-	GameManager.change_scene("res://Main.tscn")
+	GameManager.change_scene("res://main.tscn")

@@ -1,4 +1,4 @@
-# GameManager.gd - AutoLoad Singleton
+# game_manager.gd - AutoLoad Singleton
 # Handles scene management and global game state
 extends Node
 
