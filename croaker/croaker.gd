@@ -19,20 +19,26 @@ func _init(croaker_name: String = "") -> void:
 	
 	print("[Croaker] Created: '%s' - Jump: %.1f, Delay: %.1f" % [croaker_name, jump_distance, action_delay])
 	
+	
 # =============================
 # RACE STATE
 # =============================
 
 # Runtime Racing State (not exported - reset each race)
 @export_group("Race State")
+var visual_node: Node = null
 var position: float = 0.0              # Current race position
 var action_cooldown: float = 0.0       # Current cooldown remaining
 
 # Call at the start of every race
 func reset_race_state() -> void:
+	visual_node = null
 	position = 0.0
 	action_cooldown = 0.0
 	print("[Croaker] Reset race state for '%s'" % name)
+
+func set_visual_node(v_node: Node) -> void:
+	visual_node = v_node
 
 func update_race_state(delta: float) -> void:
 	action_cooldown = max(0.0, action_cooldown - delta)
