@@ -18,12 +18,17 @@ var croakers: Array[Croaker] = []
 const TRACK_WIDTH := 800
 const RACER_SIZE := Vector2(40, 30)
 const LANE_HEIGHT := 50
+const FINISH_LINE := TRACK_WIDTH - 20  # Leave some space before the edge
+
+# Race state
+var race_active := false
+var race_finished := false
 
 func _ready() -> void:
 	print("[Race] Race scene ready")
 	
 	# Set up UI elements
-	racing_label.text = "Racing..."
+	racing_label.text = "Get Ready..."
 	back_button.text = "Back to Training"
 	
 	# Initialize racers array
@@ -37,6 +42,14 @@ func _ready() -> void:
 	
 	# Connect back button
 	back_button.pressed.connect(_on_back_pressed)
+	
+	# Start race after a brief delay
+	var timer = Timer.new()
+	timer.wait_time = 2.0
+	timer.one_shot = true
+	timer.timeout.connect(_start_race)
+	add_child(timer)
+	timer.start()
 	
 	print("[Race] 4 racers positioned and ready")
 
@@ -83,11 +96,55 @@ func _create_test_croakers() -> void:
 		croaker.jump_distance = data.jump
 		croaker.action_delay = data.delay
 		croaker.set_visual_node(racers[i])
+		croaker.reset_race_state()  # Initialize race state
 		croakers.append(croaker)
 		
 		print("[Race] Created Croaker: %s (Jump: %.1f, Delay: %.1f)" % [
 			croaker.name, croaker.jump_distance, croaker.action_delay
 		])
+
+func _start_race() -> void:
+	print("[Race] Starting race!")
+	racing_label.text = "Racing!"
+	race_active = true
+	race_finished = false
+
+func _process(delta: float) -> void:
+	if not race_active or race_finished:
+		return
+	
+	# Update each Croaker's race state
+	for i in range(croakers.size()):
+		var croaker = croakers[i]
+		var racer_visual = racers[i]
+		
+		# Update Croaker logic
+		croaker.update_race_state(delta)
+		
+		# Convert position to pixels and update visual
+		var pixel_position = croaker.position * 10.0  # Scale factor for visibility
+		racer_visual.position.x = min(10 + pixel_position, FINISH_LINE)
+		
+		# Check for race completion
+		if pixel_position >= FINISH_LINE - 10:
+			if not race_finished:
+				_finish_race(croaker)
+
+func _finish_race(winner: Croaker) -> void:
+	print("[Race] Race complete! Winner: %s" % winner.name)
+	race_finished = true
+	race_active = false
+	racing_label.text = "Race Complete! Winner: " + winner.name
+	
+	# Show final positions
+	print("[Race] Final positions:")
+	for i in range(croakers.size()):
+		var croaker = croakers[i]
+		var final_position = croaker.position * 10.0
+		print("  %d. %s - Distance: %.1f" % [i + 1, croaker.name, final_position])
+	
+	# Enable back button for easy exit
+	back_button.text = "Continue"
 
 func _on_back_pressed() -> void:
 	print("[Race] Back button pressed - returning to training")
