@@ -41,7 +41,10 @@ func set_visual_node(v_node: Node) -> void:
 	visual_node = v_node
 
 func update_race_state(delta: float) -> void:
-	action_cooldown = max(0.0, action_cooldown - delta)
+	action_cooldown -= delta
+	if action_cooldown <= 0.0:
+		perform_action() 
+	# TODO: Update race visual
 
 func perform_action() -> void:
 	position += jump_distance * randf_range(0.8, 1.2)
