@@ -1,0 +1,145 @@
+[gd_scene format=3 uid="uid://jn12ghme3q4p"]
+
+[node name="RaceResults" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = -40.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PodiumContainer" type="VBoxContainer" parent="HBoxContainer"]
+custom_minimum_size = Vector2(300, 450)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 30
+
+[node name="PodiumTitleLabel" type="Label" parent="HBoxContainer/PodiumContainer"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+text = "Your Winners"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PodiumLabels" type="HBoxContainer" parent="HBoxContainer/PodiumContainer"]
+layout_mode = 2
+
+[node name="PodiumStageContainer" type="VBoxContainer" parent="HBoxContainer/PodiumContainer/PodiumLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+
+[node name="Croaker" type="Sprite2D" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer"]
+
+[node name="CroakerPlaceholder" type="ColorRect" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer"]
+custom_minimum_size = Vector2(60, 80)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Stage" type="ColorRect" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_vertical = 8
+color = Color(0.194481, 0.125605, 0.0133983, 1)
+
+[node name="2ndPlaceLabel" type="Label" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+text = "2nd"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="PodiumStageContainer2" type="VBoxContainer" parent="HBoxContainer/PodiumContainer/PodiumLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+
+[node name="Croaker" type="Sprite2D" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer2"]
+
+[node name="CroakerPlaceholder" type="ColorRect" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer2"]
+custom_minimum_size = Vector2(60, 80)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Stage" type="ColorRect" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer2"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 8
+color = Color(0.194481, 0.125605, 0.0133983, 1)
+
+[node name="1stPlaceLabel" type="Label" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+text = "1st"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="PodiumStageContainer3" type="VBoxContainer" parent="HBoxContainer/PodiumContainer/PodiumLabels"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+
+[node name="Croaker" type="Sprite2D" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer3"]
+
+[node name="CroakerPlaceholder" type="ColorRect" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer3"]
+custom_minimum_size = Vector2(60, 80)
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Stage" type="ColorRect" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer3"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_vertical = 8
+color = Color(0.194481, 0.125605, 0.0133983, 1)
+
+[node name="3rdPlaceLabel" type="Label" parent="HBoxContainer/PodiumContainer/PodiumLabels/PodiumStageContainer3"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+text = "3rd"
+horizontal_alignment = 1
+
+[node name="ContinueButton" type="Button" parent="HBoxContainer/PodiumContainer"]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Continue"
+
+[node name="NonPodiumPlacements" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CroakerInfoRowContainer" type="HBoxContainer" parent="HBoxContainer/NonPodiumPlacements"]
+layout_mode = 2
+
+[node name="PlacementLabel" type="Label" parent="HBoxContainer/NonPodiumPlacements/CroakerInfoRowContainer"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "4th"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CroakerPlaceholder" type="ColorRect" parent="HBoxContainer/NonPodiumPlacements/CroakerInfoRowContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CroakerNameLabel" type="Label" parent="HBoxContainer/NonPodiumPlacements/CroakerInfoRowContainer"]
+custom_minimum_size = Vector2(350, 0)
+layout_mode = 2
+size_flags_horizontal = 3

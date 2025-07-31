@@ -23,6 +23,7 @@ const FINISH_LINE := TRACK_WIDTH - 10  # Leave some space before the edge
 # Race state
 var race_active := false
 var race_finished := false
+var winner_index := -1  # Index of winning croaker
 
 func _ready() -> void:
 	print("[Race] Race scene ready")
@@ -108,6 +109,7 @@ func _start_race() -> void:
 	racing_label.text = "Racing!"
 	race_active = true
 	race_finished = false
+	winner_index = -1
 
 func _process(delta: float) -> void:
 	if not race_active or race_finished:
@@ -128,12 +130,13 @@ func _process(delta: float) -> void:
 		# Check for race completion
 		if pixel_position >= FINISH_LINE - 10:
 			if not race_finished:
-				_finish_race(croaker)
+				_finish_race(i, croaker)
 
-func _finish_race(winner: Croaker) -> void:
-	print("[Race] Race complete! Winner: %s" % winner.name)
+func _finish_race(winner_idx: int, winner: Croaker) -> void:
+	print("[Race] Race complete! Winner: %s (Index: %d)" % [winner.name, winner_idx])
 	race_finished = true
 	race_active = false
+	winner_index = winner_idx
 	racing_label.text = "Race Complete! Winner: " + winner.name
 	
 	# Show final positions
@@ -143,9 +146,32 @@ func _finish_race(winner: Croaker) -> void:
 		var final_position = croaker.position * 10.0
 		print("  %d. %s - Distance: %.1f" % [i + 1, croaker.name, final_position])
 	
-	# Enable back button for easy exit
-	back_button.text = "Continue"
+	# Disable back button during transition
+	back_button.disabled = true
+	back_button.text = "Race Complete..."
+	
+	# Create timer to wait 1 second before transitioning to results
+	var results_timer = Timer.new()
+	results_timer.wait_time = 1.0
+	results_timer.one_shot = true
+	results_timer.timeout.connect(_proceed_to_results)
+	add_child(results_timer)
+	results_timer.start()
+	
+	print("[Race] Results transition timer started (1 second)")
+
+func _proceed_to_results() -> void:
+	print("[Race] Proceeding to race results scene")
+	print("[Race] Winner data: Index %d, Name: %s" % [winner_index, croakers[winner_index].name if winner_index >= 0 else "Unknown"])
+	
+	# TODO: Store race results data for RaceResults scene to access
+	# For now, just change scene
+	GameManager.change_scene("res://scenes/game_flow/race_results.tscn")
 
 func _on_back_pressed() -> void:
-	print("[Race] Back button pressed - returning to training")
-	GameManager.change_scene("res://scenes/game_flow/training.tscn")
+	# Only allow back button if race hasn't finished yet
+	if not race_finished:
+		print("[Race] Back button pressed - returning to training")
+		GameManager.change_scene("res://scenes/game_flow/training.tscn")
+	else:
+		print("[Race] Back button disabled - race finished, transitioning to results")
