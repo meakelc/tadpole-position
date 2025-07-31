@@ -31,5 +31,11 @@ layout_mode = 2
 [node name="StartButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 
+[node name="CroakerInfoLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="ContinueButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+
 [node name="QuitButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
