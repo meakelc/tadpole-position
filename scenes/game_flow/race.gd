@@ -15,10 +15,10 @@ var racers: Array[ColorRect] = []
 var croakers: Array[Croaker] = []
 
 # Track settings
-const TRACK_WIDTH := 800
+const TRACK_WIDTH := 1000
 const RACER_SIZE := Vector2(40, 30)
 const LANE_HEIGHT := 50
-const FINISH_LINE := TRACK_WIDTH - 20  # Leave some space before the edge
+const FINISH_LINE := TRACK_WIDTH - 10  # Leave some space before the edge
 
 # Race state
 var race_active := false

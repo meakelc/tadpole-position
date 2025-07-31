@@ -27,6 +27,7 @@ vertical_alignment = 1
 
 [node name="TrackContainer" type="Control" parent="VBoxContainer"]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="Racer1" type="ColorRect" parent="VBoxContainer/TrackContainer"]
 layout_mode = 0
