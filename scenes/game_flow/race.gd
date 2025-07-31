@@ -8,7 +8,7 @@ extends Control
 @onready var racer_2: ColorRect = $VBoxContainer/TrackContainer/Racer2
 @onready var racer_3: ColorRect = $VBoxContainer/TrackContainer/Racer3
 @onready var racer_4: ColorRect = $VBoxContainer/TrackContainer/Racer4
-@onready var back_button: Button = $VBoxContainer/BackButton
+@onready var continue_button: Button = $VBoxContainer/ContinueButton
 
 # Racing state
 var racers: Array[ColorRect] = []
@@ -36,8 +36,8 @@ func _ready() -> void:
 	
 	# Set up UI elements
 	racing_label.text = "Get Ready..."
-	back_button.text = "Skip Race"
-	back_button.pressed.connect(_on_back_pressed)
+	continue_button.text = "Skip Race"
+	continue_button.pressed.connect(_on_continue_pressed)
 	
 	# Initialize racers array
 	racers = [racer_1, racer_2, racer_3, racer_4]
@@ -158,12 +158,12 @@ func _process(delta: float) -> void:
 func _croaker_finished(croaker: Croaker) -> void:
 	if croaker not in race_results:
 		race_results.append(croaker)
-		var position = race_results.size()
-		print("[Race] %s finished in position %d!" % [croaker.name, position])
+		var finishing_position = race_results.size()  # Renamed from 'position'
+		print("[Race] %s finished in position %d!" % [croaker.name, finishing_position])
 		
 		# Special message for player
 		if croaker == GameManager.current_croaker:
-			racing_label.text = "You finished #%d!" % position
+			racing_label.text = "You finished #%d!" % finishing_position
 
 func _finish_race() -> void:
 	print("[Race] Race complete!")
@@ -171,17 +171,17 @@ func _finish_race() -> void:
 	race_active = false
 	
 	# Find player position
-	var player_position = race_results.find(GameManager.current_croaker) + 1
+	var player_finishing_position = race_results.find(GameManager.current_croaker) + 1  # Renamed for consistency
 	
 	# Update UI based on result
-	if player_position == 1:
+	if player_finishing_position == 1:
 		racing_label.text = "Victory! You won the race!"
 		racing_label.modulate = Color.GOLD
-	elif player_position <= 2:
-		racing_label.text = "Great job! You finished #%d!" % player_position
+	elif player_finishing_position <= 2:
+		racing_label.text = "Great job! You finished #%d!" % player_finishing_position
 		racing_label.modulate = Color.SILVER
 	else:
-		racing_label.text = "You finished #%d. Keep training!" % player_position
+		racing_label.text = "You finished #%d. Keep training!" % player_finishing_position
 		racing_label.modulate = Color.TAN
 	
 	# Show final results
@@ -196,13 +196,13 @@ func _finish_race() -> void:
 		])
 	
 	# Update button
-	back_button.text = "Continue"
+	continue_button.text = "Continue"
 
-func _on_back_pressed() -> void:
+func _on_continue_pressed() -> void:
 	if race_finished:
-		print("[Race] Race complete - returning to training for next round")
+		print("[Race] Race complete - transition to race results")
 		# TODO: In full game, this would go to wart selection or next race
 		GameManager.change_scene("res://scenes/game_flow/race_results.tscn")
 	else:
-		print("[Race] Skipping race - returning to main menu")
-		GameManager.change_scene("res://scenes/main_menu.tscn")
+		print("[Race] Skipping race - transition to race results")
+		GameManager.change_scene("res://scenes/game_flow/race_results.tscn")
