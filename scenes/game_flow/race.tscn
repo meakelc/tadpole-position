@@ -1,0 +1,53 @@
+[gd_scene load_steps=2 format=3 uid="uid://bol1evshiwxk3"]
+
+[ext_resource type="Script" uid="uid://bdnm573mo0phu" path="res://scenes/game_flow/race.gd" id="1_yaghg"]
+
+[node name="Race" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_yaghg")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="RacingLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TrackContainer" type="Control" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Racer1" type="ColorRect" parent="VBoxContainer/TrackContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Racer2" type="ColorRect" parent="VBoxContainer/TrackContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Racer3" type="ColorRect" parent="VBoxContainer/TrackContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Racer4" type="ColorRect" parent="VBoxContainer/TrackContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ContinueButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2

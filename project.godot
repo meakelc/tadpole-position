@@ -11,7 +11,12 @@ config_version=5
 [application]
 
 config/name="Tadpole Position"
+run/main_scene="uid://vjlp5q5ughao"
 config/features=PackedStringArray("4.4", "GL Compatibility")
+
+[autoload]
+
+GameManager="*res://scripts/core/game_manager.gd"
 
 [editor]
 
