@@ -51,24 +51,24 @@ static func _load_croaker_data() -> void:
 		print("[Croaker] ERROR: Could not open croakers.json")
 
 # Create a new Croaker with specific brand/model
-static func create_from_brand(brand_id: String, model_id: String, croaker_name: String = "") -> Croaker:
+static func create_from_brand(target_brand_id: String, target_model_id: String, croaker_name: String = "") -> Croaker:
 	var croaker = Croaker.new()
 	
 	# Validate brand and model exist
-	if not croaker_data.brands.has(brand_id):
-		print("[Croaker] ERROR: Unknown brand '%s'" % brand_id)
+	if not croaker_data.brands.has(target_brand_id):
+		print("[Croaker] ERROR: Unknown brand '%s'" % target_brand_id)
 		return croaker
 	
-	var brand_data = croaker_data.brands[brand_id]
-	if not brand_data.models.has(model_id):
-		print("[Croaker] ERROR: Unknown model '%s' for brand '%s'" % [model_id, brand_id])
+	var brand_data = croaker_data.brands[target_brand_id]
+	if not brand_data.models.has(target_model_id):
+		print("[Croaker] ERROR: Unknown model '%s' for brand '%s'" % [target_model_id, target_brand_id])
 		return croaker
 	
-	var model_data = brand_data.models[model_id]
+	var model_data = brand_data.models[target_model_id]
 	
 	# Set identity
-	croaker.brand_id = brand_id
-	croaker.model_id = model_id
+	croaker.brand_id = target_brand_id
+	croaker.model_id = target_model_id
 	
 	# Generate name if not provided
 	if croaker_name == "":
@@ -106,17 +106,17 @@ static func create_random() -> Croaker:
 	# Build pool of all available brand/model combinations
 	var pool = []
 	
-	for brand_id in croaker_data.brands:
-		var brand = croaker_data.brands[brand_id]
-		for model_id in brand.models:
-			pool.append({"brand": brand_id, "model": model_id})
+	for current_brand_id in croaker_data.brands:
+		var brand = croaker_data.brands[current_brand_id]
+		for current_model_id in brand.models:
+			pool.append({"brand": current_brand_id, "model": current_model_id})
 	
 	# Select random from pool
 	var selection = pool[randi() % pool.size()]
 	return create_from_brand(selection.brand, selection.model)
 
 # Generate a fun name for the Croaker
-static func _generate_croaker_name(brand_name: String, model_name: String) -> String:
+static func _generate_croaker_name(_brand_name: String, model_name: String) -> String:
 	var prefixes = ["Swift", "Lucky", "Mighty", "Thunder", "Lightning", "Turbo", "Super", "Ultra", "Mega", "Hyper"]
 	var suffixes = ["Jr.", "III", "the Fast", "the Brave", "the Bold", "Champion", "Racer", "Speedster"]
 	
