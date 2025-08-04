@@ -1,0 +1,257 @@
+{
+  "brands": {
+	"forg": {
+	  "display_name": "Forg",
+	  "description": "Classic American muscle frogs. Big jumps, but slower recovery.",
+	  "brand_color": "#1E3A8A",
+	  "models": {
+		"mustang": {
+		  "display_name": "Mustang GT",
+		  "base_stats": {
+			"jump_distance": 7.0,
+			"action_delay": 1.3,
+			"stamina": 90.0
+		  },
+		  "color_primary": "#1E3A8A",
+		  "color_secondary": "#FFFFFF",
+		  "size_modifier": 1.2,
+		  "personality_pool": ["aggressive", "powerful", "loud"]
+		},
+		"f_hopper": {
+		  "display_name": "F-Hopper",
+		  "base_stats": {
+			"jump_distance": 8.0,
+			"action_delay": 1.5,
+			"stamina": 85.0
+		  },
+		  "color_primary": "#DC2626",
+		  "color_secondary": "#1E3A8A",
+		  "size_modifier": 1.3,
+		  "personality_pool": ["aggressive", "sturdy", "traditional"]
+		}
+	  }
+	},
+	"leep": {
+	  "display_name": "Leep",
+	  "description": "Rugged off-road specialists. Consistent performance in any conditions.",
+	  "brand_color": "#15803D",
+	  "models": {
+		"wrangler": {
+		  "display_name": "Wrangler",
+		  "base_stats": {
+			"jump_distance": 5.5,
+			"action_delay": 1.0,
+			"stamina": 110.0
+		  },
+		  "color_primary": "#15803D",
+		  "color_secondary": "#000000",
+		  "size_modifier": 1.1,
+		  "personality_pool": ["steady", "reliable", "adventurous"]
+		},
+		"cherokroak": {
+		  "display_name": "Grand Cherokroak",
+		  "base_stats": {
+			"jump_distance": 6.0,
+			"action_delay": 1.1,
+			"stamina": 105.0
+		  },
+		  "color_primary": "#713F12",
+		  "color_secondary": "#15803D",
+		  "size_modifier": 1.15,
+		  "personality_pool": ["steady", "luxurious", "confident"]
+		}
+	  }
+	},
+	"toytoada": {
+	  "display_name": "Toytoada",
+	  "description": "Japanese precision engineering. Balanced and efficient.",
+	  "brand_color": "#DC2626",
+	  "models": {
+		"coroalla": {
+		  "display_name": "Coroalla",
+		  "base_stats": {
+			"jump_distance": 5.0,
+			"action_delay": 0.9,
+			"stamina": 100.0
+		  },
+		  "color_primary": "#E5E7EB",
+		  "color_secondary": "#DC2626",
+		  "size_modifier": 0.9,
+		  "personality_pool": ["efficient", "reliable", "practical"]
+		},
+		"ribbupra": {
+		  "display_name": "Ribbupra",
+		  "base_stats": {
+			"jump_distance": 6.5,
+			"action_delay": 0.85,
+			"stamina": 95.0
+		  },
+		  "color_primary": "#7C3AED",
+		  "color_secondary": "#000000",
+		  "size_modifier": 0.95,
+		  "personality_pool": ["sporty", "agile", "youthful"]
+		}
+	  }
+	},
+	"sukaeru": {
+	  "display_name": "Sukaeru",
+	  "description": "High-tech Japanese sports frogs. Speed and style combined.",
+	  "brand_color": "#0EA5E9",
+	  "models": {
+		"gt_hop": {
+		  "display_name": "GT-Hop",
+		  "base_stats": {
+			"jump_distance": 7.5,
+			"action_delay": 0.8,
+			"stamina": 85.0
+		  },
+		  "color_primary": "#0EA5E9",
+		  "color_secondary": "#FFFFFF",
+		  "size_modifier": 1.0,
+		  "personality_pool": ["aggressive", "technical", "precise"]
+		},
+		"skyline": {
+		  "display_name": "Skyline GT-R",
+		  "base_stats": {
+			"jump_distance": 8.5,
+			"action_delay": 0.75,
+			"stamina": 80.0
+		  },
+		  "color_primary": "#6366F1",
+		  "color_secondary": "#0EA5E9",
+		  "size_modifier": 1.05,
+		  "personality_pool": ["legendary", "powerful", "iconic"]
+		}
+	  }
+	},
+	"croakswagen": {
+	  "display_name": "Croakswagen",
+	  "description": "German engineering excellence. Reliable and efficient.",
+	  "brand_color": "#1F2937",
+	  "models": {
+		"beetle": {
+		  "display_name": "Beetle",
+		  "base_stats": {
+			"jump_distance": 4.5,
+			"action_delay": 0.95,
+			"stamina": 120.0
+		  },
+		  "color_primary": "#FCD34D",
+		  "color_secondary": "#1F2937",
+		  "size_modifier": 0.85,
+		  "personality_pool": ["friendly", "reliable", "nostalgic"]
+		},
+		"golf_gti": {
+		  "display_name": "Golf GTI",
+		  "base_stats": {
+			"jump_distance": 6.0,
+			"action_delay": 0.85,
+			"stamina": 100.0
+		  },
+		  "color_primary": "#EF4444",
+		  "color_secondary": "#1F2937",
+		  "size_modifier": 0.9,
+		  "personality_pool": ["sporty", "practical", "peppy"]
+		}
+	  }
+	},
+	"frosche": {
+	  "display_name": "Frosche",
+	  "description": "Premium German performance. When only the best will do.",
+	  "brand_color": "#000000",
+	  "models": {
+		"toadster": {
+		  "display_name": "911 Toadster",
+		  "base_stats": {
+			"jump_distance": 7.0,
+			"action_delay": 0.7,
+			"stamina": 90.0
+		  },
+		  "color_primary": "#991B1B",
+		  "color_secondary": "#000000",
+		  "size_modifier": 0.95,
+		  "personality_pool": ["prestigious", "fast", "refined"]
+		},
+		"cayman": {
+		  "display_name": "Cayman S",
+		  "base_stats": {
+			"jump_distance": 6.5,
+			"action_delay": 0.75,
+			"stamina": 95.0
+		  },
+		  "color_primary": "#FBBF24",
+		  "color_secondary": "#000000",
+		  "size_modifier": 0.9,
+		  "personality_pool": ["agile", "balanced", "sophisticated"]
+		}
+	  }
+	},
+	"ferrana": {
+	  "display_name": "Ferrana",
+	  "description": "Italian passion and speed. For those who demand excellence.",
+	  "brand_color": "#DC2626",
+	  "models": {
+		"testarospo": {
+		  "display_name": "Testarospo",
+		  "base_stats": {
+			"jump_distance": 9.0,
+			"action_delay": 0.65,
+			"stamina": 75.0
+		  },
+		  "color_primary": "#DC2626",
+		  "color_secondary": "#FCD34D",
+		  "size_modifier": 1.0,
+		  "personality_pool": ["passionate", "dramatic", "elite"]
+		},
+		"f_leap": {
+		  "display_name": "F-Leap",
+		  "base_stats": {
+			"jump_distance": 8.0,
+			"action_delay": 0.7,
+			"stamina": 80.0
+		  },
+		  "color_primary": "#B91C1C",
+		  "color_secondary": "#000000",
+		  "size_modifier": 0.95,
+		  "personality_pool": ["exotic", "temperamental", "beautiful"]
+		}
+	  }
+	},
+	"lotus": {
+	  "display_name": "Lotus",
+	  "description": "British lightweight specialists. Agility over power.",
+	  "brand_color": "#22C55E",
+	  "models": {
+		"elise": {
+		  "display_name": "Elise",
+		  "base_stats": {
+			"jump_distance": 5.5,
+			"action_delay": 0.6,
+			"stamina": 85.0
+		  },
+		  "color_primary": "#22C55E",
+		  "color_secondary": "#FBBF24",
+		  "size_modifier": 0.8,
+		  "personality_pool": ["nimble", "lightweight", "pure"]
+		},
+		"evora": {
+		  "display_name": "Evora GT",
+		  "base_stats": {
+			"jump_distance": 6.5,
+			"action_delay": 0.65,
+			"stamina": 90.0
+		  },
+		  "color_primary": "#1E40AF",
+		  "color_secondary": "#22C55E",
+		  "size_modifier": 0.85,
+		  "personality_pool": ["refined", "capable", "exclusive"]
+		}
+	  }
+	}
+  },
+  "stat_variance": {
+	"jump_distance": 0.5,
+	"action_delay": 0.1,
+	"stamina": 10.0
+  }
+}
