@@ -115,7 +115,7 @@ func _setup_racers() -> void:
 		var racer_visual = racer_visuals[i]
 		
 		# Position at start of their lane
-		var lane_y = i * LANE_HEIGHT + (LANE_HEIGHT - RACER_HEIGHT) / 2
+		var lane_y = i * LANE_HEIGHT + (LANE_HEIGHT - RACER_HEIGHT) / 2.0
 		racer_visual.position = Vector2(10, lane_y)
 		
 		# Assign visual node to Croaker and reset state
@@ -225,6 +225,9 @@ func _finish_race() -> void:
 	race_finished = true
 	race_active = false
 	
+	# Store complete race results in GameManager (ordered by finishing position)
+	GameManager.last_race_results = race_results.duplicate()
+	
 	# Find player position
 	var player_finishing_position = race_results.find(GameManager.current_croaker) + 1
 	
@@ -258,7 +261,11 @@ func _finish_race() -> void:
 func _on_continue_pressed() -> void:
 	if race_finished:
 		print("[Race] Race complete - saving results")
-		# Store race results in GameManager
+		
+		# Ensure race results are stored in GameManager
+		GameManager.last_race_results = race_results.duplicate()
+		
+		# Store player's finishing position for backward compatibility
 		GameManager.last_race_position = race_results.find(GameManager.current_croaker) + 1
 		GameManager.races_completed += 1
 		
@@ -275,6 +282,15 @@ func _on_continue_pressed() -> void:
 	else:
 		print("[Race] Skipping race")
 		# Simulate a random finish position for skipped race
-		GameManager.last_race_position = randi_range(1, 4)
+		var simulated_position = randi_range(1, 4)
+		GameManager.last_race_position = simulated_position
+		
+		# Create simulated race results for skipped races
+		var all_racers = GameManager.get_race_lineup()
+		
+		# Shuffle racers for random finish order
+		all_racers.shuffle()
+		GameManager.last_race_results = all_racers.duplicate()
+		
 		GameManager.races_completed += 1
 		GameManager.change_scene("res://scenes/game_flow/race_results.tscn")
