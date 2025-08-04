@@ -1,96 +1,34 @@
-# game_manager.gd - AutoLoad Singleton
-# Handles scene management, global game state, and Croaker persistence
+# game_manager.gd - AutoLoad Singleton with Croaker brand/model support
+# Handles scene management, game state, and run persistence
 extends Node
 
 # Current scene reference
 var current_scene: Node = null
 
-# Game State - Persists between scenes
+# Run state
 var current_croaker: Croaker = null
-var ai_croakers: Array[Croaker] = []  # Store AI opponents for consistency
+var ai_croakers: Array[Croaker] = []
+var races_completed: int = 0
+var last_race_position: int = 0
+var current_series: int = 1  # Which series in the run (1-3)
+
+# Available starter Croakers for new runs
+var starter_pool: Array[Dictionary] = [
+	{"brand": "toytoada", "model": "coroalla", "name": "Starter Frog"},
+	{"brand": "croakswagen", "model": "beetle", "name": "Beginner Beetle"},
+	{"brand": "leep", "model": "wrangler", "name": "Rookie Ranger"},
+	{"brand": "forg", "model": "mustang", "name": "First Timer"}
+]
 
 func _ready() -> void:
 	# Get the current scene (should be Main.tscn initially)
 	var root = get_tree().root
 	current_scene = root.get_child(root.get_child_count() - 1)
 	print("[GameManager] Initial scene loaded: ", current_scene.name)
-
-# Initialize a new run with a fresh Croaker
-func start_new_run(croaker_name: String = "Player Frog") -> void:
-	print("[GameManager] Starting new run with Croaker: '%s'" % croaker_name)
 	
-	# Create player's Croaker with base stats
-	current_croaker = Croaker.new(croaker_name)
-	current_croaker.jump_distance = 5.0
-	current_croaker.action_delay = 1.0
-	current_croaker.stamina = 100.0
-	
-	# Generate AI opponents (can be reused across races in the same run)
-	_generate_ai_croakers()
-	
-	print("[GameManager] Player Croaker created - Jump: %.1f, Delay: %.1f" % [
-		current_croaker.jump_distance, 
-		current_croaker.action_delay
-	])
-
-# Generate AI opponents for the run
-func _generate_ai_croakers() -> void:
-	ai_croakers.clear()
-	
-	# AI templates with different strategies
-	var ai_templates = [
-		{"name": "Speedy", "jump": 4.5, "delay": 0.85},
-		{"name": "Jumpy", "jump": 6.0, "delay": 1.15},
-		{"name": "Steady", "jump": 5.0, "delay": 1.0}
-	]
-	
-	for template in ai_templates:
-		var ai = Croaker.new(template.name)
-		ai.jump_distance = template.jump
-		ai.action_delay = template.delay
-		ai_croakers.append(ai)
-		
-		print("[GameManager] AI Croaker created: %s - Jump: %.1f, Delay: %.1f" % [
-			ai.name, ai.jump_distance, ai.action_delay
-		])
-
-# Apply an upgrade to the current Croaker
-func apply_upgrade(upgrade_type: String, value: float) -> void:
-	if not current_croaker:
-		print("[GameManager] ERROR: No current Croaker to upgrade")
-		return
-	
-	match upgrade_type:
-		"jump_distance":
-			current_croaker.jump_distance += value
-			print("[GameManager] Applied jump upgrade: +%.1f (new total: %.1f)" % [
-				value, current_croaker.jump_distance
-			])
-		"action_delay":
-			current_croaker.action_delay += value  # Negative values make it faster
-			current_croaker.action_delay = max(0.1, current_croaker.action_delay)  # Min cap
-			print("[GameManager] Applied speed upgrade: %.1f (new delay: %.1f)" % [
-				value, current_croaker.action_delay
-			])
-		"stamina":
-			current_croaker.stamina += value
-			print("[GameManager] Applied stamina upgrade: +%.1f (new total: %.1f)" % [
-				value, current_croaker.stamina
-			])
-		_:
-			print("[GameManager] Unknown upgrade type: ", upgrade_type)
-
-# Get all racers for a race (player + AI)
-func get_race_lineup() -> Array[Croaker]:
-	var lineup: Array[Croaker] = []
-	
-	if current_croaker:
-		lineup.append(current_croaker)
-	
-	lineup.append_array(ai_croakers)
-	
-	print("[GameManager] Race lineup prepared: %d racers" % lineup.size())
-	return lineup
+	# Ensure Croaker data is loaded
+	if Croaker.croaker_data.is_empty():
+		Croaker._load_croaker_data()
 
 # Change to a new scene
 func change_scene(path: String) -> void:
@@ -139,15 +77,122 @@ func get_current_scene_name() -> String:
 	else:
 		return "none"
 
-# Debug function to print current Croaker stats
+# =============================
+# RUN MANAGEMENT
+# =============================
+
+# Start a new run with a random starter Croaker
+func start_new_run(player_name: String = "") -> void:
+	print("[GameManager] Starting new run")
+	
+	# Reset run state
+	races_completed = 0
+	last_race_position = 0
+	current_series = 1
+	
+	# Select random starter
+	var starter = starter_pool[randi() % starter_pool.size()]
+	
+	# Create player's Croaker
+	current_croaker = Croaker.create_from_brand(
+		starter.brand,
+		starter.model,
+		player_name if player_name != "" else starter.name
+	)
+	
+	# Generate AI opponents
+	_generate_ai_opponents()
+	
+	print("[GameManager] New run started with %s %s" % [
+		current_croaker.get_brand_name(),
+		current_croaker.get_model_name()
+	])
+
+# Generate AI opponents for races
+func _generate_ai_opponents() -> void:
+	ai_croakers.clear()
+	
+	# For now, generate 3 random AI opponents
+	# In full game, this would be based on current series/difficulty
+	for i in range(3):
+		var ai_croaker = Croaker.create_random()
+		ai_croakers.append(ai_croaker)
+		print("[GameManager] Generated AI opponent: %s (%s)" % [
+			ai_croaker.name,
+			ai_croaker.get_full_type_name()
+		])
+
+# Get the full race lineup (player + AI)
+func get_race_lineup() -> Array[Croaker]:
+	var lineup: Array[Croaker] = []
+	
+	# Player always in lane 1
+	lineup.append(current_croaker)
+	
+	# Add AI opponents
+	for ai in ai_croakers:
+		lineup.append(ai)
+	
+	return lineup
+
+# Apply an upgrade to the current Croaker
+func apply_upgrade(stat_type: String, value: float) -> void:
+	if not current_croaker:
+		print("[GameManager] ERROR: No current Croaker to upgrade")
+		return
+	
+	match stat_type:
+		"jump_distance":
+			current_croaker.jump_distance += value
+			print("[GameManager] Jump distance upgraded: %.1f -> %.1f" % [
+				current_croaker.jump_distance - value,
+				current_croaker.jump_distance
+			])
+		"action_delay":
+			current_croaker.action_delay += value
+			current_croaker.action_delay = max(0.1, current_croaker.action_delay)  # Min delay
+			print("[GameManager] Action delay upgraded: %.1f -> %.1f" % [
+				current_croaker.action_delay - value,
+				current_croaker.action_delay
+			])
+		"stamina":
+			current_croaker.stamina += value
+			print("[GameManager] Stamina upgraded: %.1f -> %.1f" % [
+				current_croaker.stamina - value,
+				current_croaker.stamina
+			])
+
+# Debug helper to print current Croaker stats
 func debug_print_croaker_stats() -> void:
-	if current_croaker:
-		print("[GameManager] Current Croaker Stats:")
-		print("  Name: %s" % current_croaker.name)
-		print("  Jump Distance: %.1f" % current_croaker.jump_distance)
-		print("  Action Delay: %.1f" % current_croaker.action_delay)
-		print("  Stamina: %.1f" % current_croaker.stamina)
-		print("  Upgrades: %d" % current_croaker.upgrades_equipped.size())
-		print("  Warts: %d" % current_croaker.warts_equipped.size())
-	else:
+	if not current_croaker:
 		print("[GameManager] No current Croaker")
+		return
+	
+	print("[GameManager] Current Croaker Stats:")
+	print("  Name: %s" % current_croaker.name)
+	print("  Type: %s %s" % [
+		current_croaker.get_brand_name(),
+		current_croaker.get_model_name(),
+	])
+	print("  Jump Distance: %.1f" % current_croaker.jump_distance)
+	print("  Action Delay: %.1f" % current_croaker.action_delay)
+	print("  Stamina: %.1f" % current_croaker.stamina)
+	print("  Personality: %s" % current_croaker.personality)
+
+# Check if we're in an elimination race
+func is_elimination_race() -> bool:
+	return races_completed > 0 and races_completed % 3 == 0
+
+# Get current race number in series (1-3)
+func get_race_in_series() -> int:
+	return (races_completed % 3) + 1
+
+# Save/Load functionality (placeholder for MVP)
+func save_run() -> void:
+	print("[GameManager] Save run - NOT IMPLEMENTED FOR MVP")
+	# TODO: Implement save system post-MVP
+
+func load_run() -> bool:
+	print("[GameManager] Load run - NOT IMPLEMENTED FOR MVP")
+	# TODO: Implement load system post-MVP
+	return false
