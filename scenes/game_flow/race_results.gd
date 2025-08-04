@@ -22,7 +22,7 @@ func _ready() -> void:
 	print("[RaceResults] Race results scene ready")
 	
 	# Get race results from GameManager
-	race_results = GameManager.last_race_results
+	race_results = RunManager.last_race_results
 	
 	# Validate that results exist
 	if race_results.is_empty():
@@ -31,10 +31,10 @@ func _ready() -> void:
 		return
 	
 	# Find player position
-	player_position = race_results.find(GameManager.current_croaker) + 1
+	player_position = race_results.find(RunManager.current_croaker) + 1
 	
 	# Determine if this was an elimination race
-	is_elimination_race = (GameManager.races_completed % 3 == 0)
+	is_elimination_race = (RunManager.races_completed % 3 == 0)
 	
 	# Set up header text
 	_setup_header_text()
@@ -59,7 +59,7 @@ func _setup_header_text() -> void:
 		if race_header_label:
 			race_header_label.modulate = Color.ORANGE_RED
 	else:
-		header_text = "RACE %d RESULTS" % GameManager.races_completed
+		header_text = "RACE %d RESULTS" % RunManager.races_completed
 		if race_header_label:
 			race_header_label.modulate = Color.WHITE
 	
@@ -119,7 +119,7 @@ func populate_podium() -> void:
 			var name_text = croaker.name
 			
 			# Add (YOU) indicator for player
-			if croaker == GameManager.current_croaker:
+			if croaker == RunManager.current_croaker:
 				name_text += " (YOU)"
 				croaker_name.modulate = Color.CYAN
 			else:
@@ -227,7 +227,7 @@ func populate_non_podium() -> void:
 		var name_label = row_container.get_node_or_null("CroakerNameLabel")
 		if name_label:
 			var name_text = croaker.name
-			if croaker == GameManager.current_croaker:
+			if croaker == RunManager.current_croaker:
 				name_text += " (YOU)"
 				name_label.modulate = Color.CYAN
 			else:
@@ -292,7 +292,7 @@ func _on_continue_pressed() -> void:
 		return
 	
 	# Check if run is complete (won final race)
-	if is_elimination_race and player_position == 1 and GameManager.races_completed >= 9:
+	if is_elimination_race and player_position == 1 and RunManager.races_completed >= 9:
 		print("[RaceResults] Player won the championship!")
 		# TODO: Transition to victory scene
 		GameManager.change_scene("res://scenes/main_menu.tscn")
@@ -309,14 +309,14 @@ func _debug_print_results() -> void:
 	
 	print("[RaceResults] === RACE RESULTS DEBUG ===")
 	print("[RaceResults] Race #%d | Elimination: %s | Player Position: %d" % [
-		GameManager.races_completed, 
+		RunManager.races_completed, 
 		is_elimination_race, 
 		player_position
 	])
 	
 	for i in range(race_results.size()):
 		var croaker = race_results[i]
-		var player_indicator = " ★" if croaker == GameManager.current_croaker else ""
+		var player_indicator = " ★" if croaker == RunManager.current_croaker else ""
 		print("[RaceResults] %s. %s%s (%s %s)" % [
 			_get_ordinal_string(i + 1),
 			croaker.name,

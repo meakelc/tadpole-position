@@ -34,10 +34,20 @@ var current_upgrades: Array[Upgrade] = []
 func _ready() -> void:
 	print("[Training] Training scene ready")
 	
+	# Validate RunManager is available
+	if not RunManager:
+		print("[Training] ERROR: RunManager not found! Returning to main menu...")
+		GameManager.change_scene("res://scenes/main_menu.tscn")
+		return
+	
 	# Check if we have a Croaker, create one if not
-	if not GameManager.current_croaker:
+	if not RunManager.current_croaker:
 		print("[Training] No Croaker found, starting new run")
-		GameManager.start_new_run("Rookie Frog")
+		var success = RunManager.start_new_run("Rookie Frog")
+		if not success:
+			print("[Training] ERROR: Failed to start new run! Returning to main menu...")
+			GameManager.change_scene("res://scenes/main_menu.tscn")
+			return
 	
 	# Set up UI
 	back_button.text = "Back to Main Menu"
@@ -48,11 +58,11 @@ func _ready() -> void:
 	_generate_upgrade_options()
 
 func _update_stats_display() -> void:
-	if not GameManager.current_croaker:
+	if not RunManager or not RunManager.current_croaker:
 		croaker_stats_label.text = "No Croaker!"
 		return
 	
-	var croaker = GameManager.current_croaker
+	var croaker = RunManager.current_croaker
 	croaker_stats_label.text = "%s - Jump: %.1f | Speed: %.1f | Round: %d/%d" % [
 		croaker.name,
 		croaker.jump_distance,
@@ -145,14 +155,24 @@ func _generate_upgrade_options() -> void:
 func _apply_upgrade_to_croaker(upgrade: Upgrade) -> void:
 	"""Apply the selected upgrade to the current Croaker"""
 	
+	if not RunManager:
+		print("[Training] ERROR: RunManager not available for upgrade application")
+		return
+	
 	# Apply primary upgrade
-	GameManager.apply_upgrade(upgrade.type, upgrade.value)
-	print("[Training] Applied primary upgrade: %s %.1f" % [upgrade.type, upgrade.value])
+	var success = RunManager.apply_upgrade(upgrade.type, upgrade.value)
+	if success:
+		print("[Training] Applied primary upgrade: %s %.1f" % [upgrade.type, upgrade.value])
+	else:
+		print("[Training] ERROR: Failed to apply primary upgrade: %s %.1f" % [upgrade.type, upgrade.value])
 	
 	# Apply secondary upgrade if it exists
 	if upgrade.secondary_type != "":
-		GameManager.apply_upgrade(upgrade.secondary_type, upgrade.secondary_value)
-		print("[Training] Applied secondary upgrade: %s %.1f" % [upgrade.secondary_type, upgrade.secondary_value])
+		var secondary_success = RunManager.apply_upgrade(upgrade.secondary_type, upgrade.secondary_value)
+		if secondary_success:
+			print("[Training] Applied secondary upgrade: %s %.1f" % [upgrade.secondary_type, upgrade.secondary_value])
+		else:
+			print("[Training] ERROR: Failed to apply secondary upgrade: %s %.1f" % [upgrade.secondary_type, upgrade.secondary_value])
 
 func _on_upgrade_selected(index: int) -> void:
 	if index >= current_upgrades.size():
@@ -193,7 +213,8 @@ func _proceed_after_selection() -> void:
 	else:
 		# Training complete, proceed to race
 		print("[Training] All training complete! Moving to race...")
-		GameManager.debug_print_croaker_stats()
+		if RunManager:
+			RunManager.debug_print_croaker_stats()
 		GameManager.change_scene("res://scenes/game_flow/race.tscn")
 
 func _on_back_pressed() -> void:
