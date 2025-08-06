@@ -1,4 +1,4 @@
-# race.gd - Race scene script with RunManager integration
+# race.gd - Race scene script with RaceManager integration
 extends Control
 
 # UI elements
@@ -49,8 +49,8 @@ func _ready() -> void:
 	continue_button.text = "Skip Race"
 	continue_button.pressed.connect(_on_continue_pressed)
 	
-	# Get race lineup from RunManager
-	croakers = RunManager.get_race_lineup()
+	# Get race lineup from RaceManager
+	croakers = RaceManager.get_race_lineup()
 	
 	if croakers.is_empty():
 		print("[Race] ERROR: Empty race lineup from RunManager! Returning to training...")
@@ -242,7 +242,7 @@ func _finish_race() -> void:
 	race_active = false
 	
 	# Store race results in RunManager
-	RunManager.store_race_results(race_results.duplicate())
+	RaceManager.store_race_results(race_results.duplicate())
 	
 	# Find player position for UI display
 	var player_finishing_position = race_results.find(RunManager.current_croaker) + 1
@@ -276,11 +276,11 @@ func _finish_race() -> void:
 
 func _on_continue_pressed() -> void:
 	if race_finished:
-		print("[Race] Race complete - results stored in RunManager")
+		print("[Race] Race complete - results stored in RaceManager")
 		
 		# Get current race number and player position from RunManager
 		var current_race_number = RunManager.races_completed
-		var player_position = RunManager.get_last_race_player_position()
+		var player_position = RaceManager.get_last_race_player_position()
 		
 		# Check for elimination
 		if current_race_number % 3 == 0:  # Every 3rd race is elimination
@@ -302,11 +302,11 @@ func _on_continue_pressed() -> void:
 		print("[Race] Skipping race")
 		
 		# Create simulated race results for skipped races
-		var all_racers = RunManager.get_race_lineup()
+		var all_racers = RaceManager.get_race_lineup()
 		all_racers.shuffle()  # Random finish order for simulation
 		
-		# Store simulated results in RunManager
-		RunManager.store_race_results(all_racers.duplicate())
+		# Store simulated results in RaceManager
+		RaceManager.store_race_results(all_racers.duplicate())
 		
 		# Continue with the simulated results
 		GameManager.change_scene("res://scenes/game_flow/race_results.tscn")

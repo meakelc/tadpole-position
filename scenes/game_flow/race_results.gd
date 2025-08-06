@@ -22,7 +22,7 @@ func _ready() -> void:
 	print("[RaceResults] Race results scene ready")
 	
 	# Get race results from GameManager
-	race_results = RunManager.last_race_results
+	race_results = RaceManager.last_race_results
 	
 	# Validate that results exist
 	if race_results.is_empty():
