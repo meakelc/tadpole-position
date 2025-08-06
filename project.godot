@@ -18,6 +18,7 @@ config/features=PackedStringArray("4.4", "GL Compatibility")
 
 GameManager="*res://scripts/core/game_manager.gd"
 RunManager="*res://scripts/core/run_manager.gd"
+RaceManager="*res://scripts/core/race_manager.gd"
 
 [editor]
 

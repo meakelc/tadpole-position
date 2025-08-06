@@ -16,27 +16,26 @@ extends Control
 # Race results data
 var race_results: Array = []
 var player_position: int = 0
+var current_race_type: String = ""
 var is_elimination_race: bool = false
+var is_run_based_race: bool = false
 
 func _ready() -> void:
 	print("[RaceResults] Race results scene ready")
 	
-	# Get race results from GameManager
-	race_results = RunManager.last_race_results
-	
-	# Validate that results exist
-	if race_results.is_empty():
-		print("[RaceResults] ERROR: No race results found! Returning to main menu...")
+	# Get race results and context from RaceManager (primary source)
+	if not _get_race_results_and_context():
+		print("[RaceResults] ERROR: No valid race results found! Returning to main menu...")
 		GameManager.change_scene("res://scenes/main_menu.tscn")
 		return
 	
-	# Find player position
-	player_position = race_results.find(RunManager.current_croaker) + 1
+	# Validate that results exist
+	if race_results.is_empty():
+		print("[RaceResults] ERROR: Empty race results! Returning to appropriate scene...")
+		_return_to_fallback_scene()
+		return
 	
-	# Determine if this was an elimination race
-	is_elimination_race = (RunManager.races_completed % 3 == 0)
-	
-	# Set up header text
+	# Set up header text based on race type and context
 	_setup_header_text()
 	
 	# Populate the podium displays
@@ -51,34 +50,121 @@ func _ready() -> void:
 	# Debug output
 	_debug_print_results()
 
-func _setup_header_text() -> void:
-	var header_text = ""
+func _get_race_results_and_context() -> bool:
+	"""
+	Get race results and context from RaceManager (primary) with RunManager fallback for run context
+	Returns true if successful, false if failed
+	"""
+	# Primary: Get results from RaceManager
+	if not RaceManager:
+		print("[RaceResults] ERROR: RaceManager not found!")
+		return false
 	
-	if is_elimination_race:
-		header_text = "ELIMINATION RACE RESULTS"
-		if race_header_label:
-			race_header_label.modulate = Color.ORANGE_RED
+	if RaceManager.get_last_race_results().is_empty():
+		print("[RaceResults] ERROR: No race results found in RaceManager")
+		return false
+	
+	print("[RaceResults] Using RaceManager for race results")
+	
+	# Get core race data from RaceManager
+	race_results = RaceManager.get_last_race_results()
+	player_position = RaceManager.get_last_race_player_position()
+	current_race_type = RaceManager.current_race_type
+	
+	# Determine if this is run-based
+	is_run_based_race = (current_race_type == "run_race")
+	
+	# For run races, get additional context from RunManager
+	if is_run_based_race and RunManager and RunManager.is_run_active():
+		# Calculate if this was an elimination race based on completed races
+		is_elimination_race = (RunManager.races_completed % 3 == 0)
+		print("[RaceResults] Run race context - Races completed: %d, Elimination: %s" % [
+			RunManager.races_completed, is_elimination_race
+		])
 	else:
-		header_text = "RACE %d RESULTS" % RunManager.races_completed
-		if race_header_label:
-			race_header_label.modulate = Color.WHITE
+		# Non-run races don't have eliminations
+		is_elimination_race = false
+	
+	print("[RaceResults] Race context - Type: %s, Position: %d/%d, Elimination: %s" % [
+		current_race_type, player_position, race_results.size(), is_elimination_race
+	])
+	
+	return true
+
+func _return_to_fallback_scene() -> void:
+	"""Return to appropriate fallback scene based on context"""
+	if is_run_based_race and RunManager and RunManager.is_run_active():
+		GameManager.change_scene("res://scenes/game_flow/training.tscn")
+	else:
+		GameManager.change_scene("res://scenes/main_menu.tscn")
+
+func _setup_header_text() -> void:
+	"""Setup header text based on race type and context"""
+	var header_text = ""
+	var header_color = Color.WHITE
+	
+	# Base header text based on race type
+	match current_race_type:
+		"run_race":
+			if is_elimination_race:
+				header_text = "ELIMINATION RACE RESULTS"
+				header_color = Color.ORANGE_RED
+			else:
+				var race_num = RunManager.races_completed if RunManager else 1
+				header_text = "RACE %d RESULTS" % race_num
+		
+		"challenge_race":
+			header_text = "CHALLENGE RACE RESULTS"
+			header_color = Color.ORANGE
+		
+		"trial_race":
+			header_text = "TRIAL RACE RESULTS"
+			header_color = Color.CYAN
+		
+		_:
+			header_text = "RACE RESULTS"
 	
 	# Add player result context
 	if player_position == 1:
-		header_text += " - VICTORY!"
-		if race_header_label:
-			race_header_label.modulate = Color.GOLD
-	elif player_position <= 3:
-		header_text += " - PODIUM FINISH!"
-		if race_header_label:
-			race_header_label.modulate = Color.SILVER
-	elif is_elimination_race and player_position > 2:
-		header_text += " - ELIMINATED!"
-		if race_header_label:
-			race_header_label.modulate = Color.CRIMSON
+		match current_race_type:
+			"challenge_race":
+				header_text += " - CHALLENGE CONQUERED!"
+				header_color = Color.GOLD
+			"trial_race":
+				header_text += " - TRIAL MASTERED!"
+				header_color = Color.GOLD
+			_:
+				header_text += " - VICTORY!"
+				header_color = Color.GOLD
 	
+	elif player_position <= 3:
+		match current_race_type:
+			"challenge_race":
+				header_text += " - CHALLENGE COMPLETED!"
+				header_color = Color.SILVER
+			"trial_race":
+				header_text += " - TRIAL PASSED!"
+				header_color = Color.SILVER
+			_:
+				header_text += " - PODIUM FINISH!"
+				header_color = Color.SILVER
+	
+	elif is_elimination_race and is_run_based_race and player_position > 2:
+		header_text += " - ELIMINATED!"
+		header_color = Color.CRIMSON
+	
+	elif current_race_type == "challenge_race" and player_position > 3:
+		header_text += " - CHALLENGE FAILED"
+		header_color = Color.ORANGE_RED
+	
+	elif current_race_type == "trial_race" and player_position > 3:
+		header_text += " - TRIAL INCOMPLETE"
+		header_color = Color.LIGHT_BLUE
+	
+	# Apply header text and color
 	if race_header_label:
 		race_header_label.text = header_text
+		race_header_label.modulate = header_color
 	else:
 		print("[RaceResults] No header label found - would display: %s" % header_text)
 
@@ -119,7 +205,7 @@ func populate_podium() -> void:
 			var name_text = croaker.name
 			
 			# Add (YOU) indicator for player
-			if croaker == RunManager.current_croaker:
+			if _is_player_croaker(croaker):
 				name_text += " (YOU)"
 				croaker_name.modulate = Color.CYAN
 			else:
@@ -144,6 +230,24 @@ func populate_podium() -> void:
 		print("[RaceResults] Populated podium position %d: %s (%s)" % [
 			placement, croaker.name, croaker.get_full_type_name()
 		])
+
+func _is_player_croaker(croaker: Croaker) -> bool:
+	"""Determine if a croaker is the player's croaker based on context"""
+	# For run-based races, check RunManager for player's croaker
+	if is_run_based_race and RunManager and RunManager.current_croaker:
+		return croaker == RunManager.current_croaker
+	
+	# For other race types, use RaceManager's race lineup (player should be first)
+	if RaceManager and not RaceManager.current_racers.is_empty():
+		return croaker == RaceManager.current_racers[0]
+	
+	# Fallback: player position indicates the player croaker
+	if not race_results.is_empty():
+		var player_index = player_position - 1
+		if player_index >= 0 and player_index < race_results.size():
+			return croaker == race_results[player_index]
+	
+	return false
 
 func populate_non_podium() -> void:
 	"""Populate non-podium placements for positions 4+"""
@@ -227,7 +331,7 @@ func populate_non_podium() -> void:
 		var name_label = row_container.get_node_or_null("CroakerNameLabel")
 		if name_label:
 			var name_text = croaker.name
-			if croaker == RunManager.current_croaker:
+			if _is_player_croaker(croaker):
 				name_text += " (YOU)"
 				name_label.modulate = Color.CYAN
 			else:
@@ -260,18 +364,34 @@ func _get_ordinal_string(place: int) -> String:
 			return "%dth" % place
 
 func _setup_continue_button() -> void:
-	"""Set up the continue button text and functionality"""
+	"""Set up the continue button text and functionality based on race type"""
 	
 	var button_text = "Continue"
 	
-	# Customize button text based on race outcome
-	if is_elimination_race:
-		if player_position > 2:  # Player eliminated
-			button_text = "End Run"
-		else:
-			button_text = "Continue to Next Round"
-	else:
-		button_text = "Select Warts"
+	# Customize button text based on race type and outcome
+	match current_race_type:
+		"run_race":
+			if is_elimination_race and player_position > 2:
+				button_text = "End Run"
+			elif is_elimination_race:
+				button_text = "Continue to Next Round"
+			else:
+				button_text = "Select Warts"
+		
+		"challenge_race":
+			if player_position == 1:
+				button_text = "Claim Rewards"
+			else:
+				button_text = "Try Again"
+		
+		"trial_race":
+			if player_position <= 3:
+				button_text = "Complete Trial"
+			else:
+				button_text = "Retry Trial"
+		
+		_:
+			button_text = "Continue"
 	
 	continue_button.text = button_text
 	continue_button.pressed.connect(_on_continue_pressed)
@@ -280,43 +400,105 @@ func _setup_continue_button() -> void:
 	continue_button.grab_focus()
 
 func _on_continue_pressed() -> void:
-	"""Handle continue button press - transition to appropriate next scene"""
+	"""Handle continue button press - transition based on race type and context"""
 	
-	print("[RaceResults] Continue button pressed")
+	print("[RaceResults] Continue button pressed for %s" % current_race_type)
 	
-	# Check for elimination first
+	match current_race_type:
+		"run_race":
+			_handle_run_race_continuation()
+		
+		"challenge_race":
+			_handle_challenge_race_continuation()
+		
+		"trial_race":
+			_handle_trial_race_continuation()
+		
+		_:
+			print("[RaceResults] Unknown race type, returning to main menu")
+			GameManager.change_scene("res://scenes/main_menu.tscn")
+
+func _handle_run_race_continuation() -> void:
+	"""Handle continuation flow for run races"""
+	# Check for elimination first (only applies to run races)
 	if is_elimination_race and player_position > 2:
 		print("[RaceResults] Player eliminated! Ending run...")
+		# End the run in RunManager
+		if RunManager:
+			RunManager.end_current_run()
 		# TODO: Transition to run results/game over scene
+		# For now, return to main menu
 		GameManager.change_scene("res://scenes/main_menu.tscn")
 		return
 	
 	# Check if run is complete (won final race)
-	if is_elimination_race and player_position == 1 and RunManager.races_completed >= 9:
+	if RunManager and RunManager.is_run_complete():
 		print("[RaceResults] Player won the championship!")
 		# TODO: Transition to victory scene
+		# For now, return to main menu
 		GameManager.change_scene("res://scenes/main_menu.tscn")
 		return
 	
-	# Normal progression - go to wart selection
-	print("[RaceResults] Proceeding to wart selection...")
+	# Normal progression - go to wart selection or next training round
+	print("[RaceResults] Proceeding to next phase...")
 	# TODO: Transition to wart selection scene
 	# For now, go back to training for next race
 	GameManager.change_scene("res://scenes/game_flow/training.tscn")
+
+func _handle_challenge_race_continuation() -> void:
+	"""Handle continuation flow for challenge races"""
+	if player_position == 1:
+		print("[RaceResults] Challenge conquered! Processing rewards...")
+		# TODO: Transition to challenge rewards scene
+	else:
+		print("[RaceResults] Challenge failed, returning to challenge selection...")
+		# TODO: Transition to challenge selection scene
+	
+	# Clear RaceManager state since challenge is complete
+	if RaceManager:
+		RaceManager.clear_race_state()
+	
+	# For now, return to main menu
+	GameManager.change_scene("res://scenes/main_menu.tscn")
+
+func _handle_trial_race_continuation() -> void:
+	"""Handle continuation flow for trial races"""
+	if player_position <= 3:
+		print("[RaceResults] Trial completed successfully!")
+		# TODO: Process trial completion, unlock rewards
+	else:
+		print("[RaceResults] Trial incomplete, player can retry...")
+		# TODO: Offer retry option or return to trial menu
+	
+	# Clear RaceManager state since trial is complete
+	if RaceManager:
+		RaceManager.clear_race_state()
+	
+	# For now, return to main menu
+	GameManager.change_scene("res://scenes/main_menu.tscn")
 
 func _debug_print_results() -> void:
 	"""Debug output for race results"""
 	
 	print("[RaceResults] === RACE RESULTS DEBUG ===")
-	print("[RaceResults] Race #%d | Elimination: %s | Player Position: %d" % [
-		RunManager.races_completed, 
-		is_elimination_race, 
-		player_position
+	print("[RaceResults] Race Type: %s | Run-based: %s | Elimination: %s | Player Position: %d" % [
+		current_race_type, is_run_based_race, is_elimination_race, player_position
 	])
+	
+	if is_run_based_race and RunManager:
+		print("[RaceResults] Run Context - Races completed: %d" % RunManager.races_completed)
+	
+	if RaceManager:
+		var race_stats = RaceManager.get_race_stats()
+		print("[RaceResults] RaceManager Stats - Total: %d, Player won: %s, Player podium: %s" % [
+			race_stats.get("total_racers", 0),
+			race_stats.get("player_won", false),
+			race_stats.get("player_podium", false)
+		])
 	
 	for i in range(race_results.size()):
 		var croaker = race_results[i]
-		var player_indicator = " ★" if croaker == RunManager.current_croaker else ""
+		var player_indicator = " ★" if _is_player_croaker(croaker) else ""
 		print("[RaceResults] %s. %s%s (%s %s)" % [
 			_get_ordinal_string(i + 1),
 			croaker.name,
@@ -335,3 +517,17 @@ func _input(event: InputEvent) -> void:
 		# Quick exit to main menu (for testing)
 		print("[RaceResults] Quick exit to main menu")
 		GameManager.change_scene("res://scenes/main_menu.tscn")
+	elif OS.is_debug_build() and event.is_action_pressed("ui_select") and Input.is_action_pressed("ui_cancel"):
+		# Debug: Print race context (Ctrl+Esc)
+		print("[RaceResults] === DEBUG: Race Context ===")
+		print("Race Type: %s" % current_race_type)
+		print("Run Based: %s" % is_run_based_race)
+		print("Elimination: %s" % is_elimination_race)
+		print("Player Position: %d/%d" % [player_position, race_results.size()])
+		if RaceManager:
+			print("RaceManager Active: %s" % RaceManager.is_race_active())
+			print("RaceManager Results Count: %d" % RaceManager.get_last_race_results().size())
+		if RunManager:
+			print("RunManager Active: %s" % RunManager.is_run_active())
+			print("RunManager Races Completed: %d" % RunManager.races_completed)
+		print("===============================")

@@ -1,5 +1,6 @@
 # run_manager.gd - AutoLoad Singleton for Run State Management
-# Handles all run-specific game state, race results, and Croaker management
+# Handles all run-specific game state and Croaker management
+# Race-specific functionality moved to RaceManager singleton
 extends Node
 
 # =============================
@@ -12,10 +13,8 @@ var ai_croakers: Array[Croaker] = []
 var races_completed: int = 0
 var current_run_active: bool = false
 
-# Race results storage
-var last_race_results: Array[Croaker] = []  # All racers in finishing order
-var last_race_position: int = 0  # Player's finishing position (for backward compatibility)
-var race_history: Array[Dictionary] = []  # Full race history for the run
+# Run progression tracking (race IDs instead of full results)
+var race_history: Array[String] = []  # Array of race IDs from RaceManager
 
 # Run configuration
 const DEFAULT_AI_COUNT := 3
@@ -65,7 +64,7 @@ func start_new_run(croaker_name: String = "Player Frog", brand_id: String = "", 
 	# Initialize run state
 	races_completed = 0
 	current_run_active = true
-	clear_race_results()
+	race_history.clear()
 	
 	print("[RunManager] New run started successfully")
 	debug_print_croaker_stats()
@@ -79,7 +78,6 @@ func end_current_run() -> void:
 	ai_croakers.clear()
 	races_completed = 0
 	current_run_active = false
-	clear_race_results()
 	race_history.clear()
 
 func is_run_active() -> bool:
@@ -96,14 +94,74 @@ func is_run_complete() -> bool:
 
 func _is_player_eliminated() -> bool:
 	"""Check if player was eliminated in the last elimination race"""
-	if last_race_results.is_empty():
+	# Use RaceManager to check elimination status
+	if not RaceManager:
+		print("[RunManager] WARNING: RaceManager not available for elimination check")
 		return false
+	
+	var player_position = RaceManager.get_last_race_player_position()
+	if player_position <= 0:
+		return false  # No race data available
 	
 	# Check if last race was elimination and player finished poorly
 	var was_elimination = (races_completed % 3 == 0)
-	var player_position = get_last_race_player_position()
-	
 	return was_elimination and player_position > 2  # Bottom 2 eliminated
+
+# =============================
+# RACE COORDINATION
+# =============================
+
+func start_run_race() -> String:
+	"""
+	Start a new race as part of the current run
+	Coordinates with RaceManager to handle race logistics
+	Returns race ID from RaceManager, or empty string if failed
+	"""
+	if not is_run_active():
+		print("[RunManager] ERROR: Cannot start race - no active run")
+		return ""
+	
+	if not RaceManager:
+		print("[RunManager] ERROR: RaceManager not available")
+		return ""
+	
+	# Get race lineup
+	var lineup = get_race_lineup()
+	if lineup.is_empty():
+		print("[RunManager] ERROR: Empty race lineup")
+		return ""
+	
+	# Determine race type
+	var race_number = get_current_race_number()
+	var is_elimination = is_next_race_elimination()
+	
+	# Start race through RaceManager
+	# Split the lineup before calling
+	var race_id = RaceManager.start_race(current_croaker, ai_croakers)
+	
+	if race_id == "":
+		print("[RunManager] ERROR: Failed to start race through RaceManager")
+		return ""
+	
+	# Store race ID in history
+	race_history.append(race_id)
+	
+	# Increment races completed
+	races_completed += 1
+	
+	print("[RunManager] Started run race #%d (ID: %s) - Elimination: %s" % [
+		race_number, race_id, is_elimination
+	])
+	
+	return race_id
+
+func is_race_part_of_current_run(race_id: String) -> bool:
+	"""Check if a race ID belongs to the current run"""
+	return race_id in race_history
+
+func get_current_run_race_ids() -> Array[String]:
+	"""Get all race IDs for the current run"""
+	return race_history.duplicate()
 
 # =============================
 # CROAKER MANAGEMENT
@@ -327,7 +385,7 @@ func can_apply_upgrade(upgrade_type: String, value: float) -> bool:
 # =============================
 
 func get_race_lineup() -> Array[Croaker]:
-	"""Get all racers for a race (player + AI)"""
+	"""Get all racers for a race (player + AI) without storing them"""
 	var lineup: Array[Croaker] = []
 	
 	if current_croaker:
@@ -338,46 +396,17 @@ func get_race_lineup() -> Array[Croaker]:
 	print("[RunManager] Race lineup prepared: %d racers" % lineup.size())
 	return lineup
 
-func store_race_results(results: Array[Croaker]) -> void:
-	"""Store race results and update run state"""
-	if results.is_empty():
-		print("[RunManager] ERROR: Cannot store empty race results")
-		return
-	
-	# Store current race results
-	last_race_results = results.duplicate()
-	
-	# Find and store player position
-	last_race_position = results.find(current_croaker) + 1
-	if last_race_position == 0:  # Player not found in results
-		print("[RunManager] WARNING: Player not found in race results")
-		last_race_position = results.size()  # Assume last place
-	
-	# Increment race counter
-	races_completed += 1
-	
-	# Store in race history
-	var race_record = {
-		"race_number": races_completed,
-		"results": results.duplicate(),
-		"player_position": last_race_position,
-		"was_elimination": (races_completed % 3 == 0)
-	}
-	race_history.append(race_record)
-	
-	print("[RunManager] Stored race %d results - Player finished %d/%d" % [
-		races_completed, last_race_position, results.size()
-	])
-
-func clear_race_results() -> void:
-	"""Clear race results data"""
-	last_race_results.clear()
-	last_race_position = 0
-	print("[RunManager] Race results cleared")
-
+# DEPRECATED: Use RaceManager.get_last_race_player_position() instead
 func get_last_race_player_position() -> int:
-	"""Get player's position in the last race (1-indexed)"""
-	return last_race_position
+	"""
+	DEPRECATED: Get player's position in the last race (1-indexed)
+	Use RaceManager.get_last_race_player_position() instead
+	"""
+	if not RaceManager:
+		print("[RunManager] WARNING: RaceManager not available")
+		return 0
+	
+	return RaceManager.get_last_race_player_position()
 
 func get_current_race_number() -> int:
 	"""Get the current race number (1-indexed)"""
@@ -397,7 +426,7 @@ func get_races_until_elimination() -> int:
 # =============================
 
 func get_run_stats() -> Dictionary:
-	"""Get comprehensive run statistics"""
+	"""Get comprehensive run statistics (aggregates from RaceManager)"""
 	if not is_run_active():
 		return {}
 	
@@ -414,27 +443,45 @@ func get_run_stats() -> Dictionary:
 		"is_complete": is_run_complete()
 	}
 	
-	# Calculate statistics from race history
-	if not race_history.is_empty():
+	# Aggregate statistics from RaceManager if available
+	if RaceManager:
 		var total_position = 0
-		for race in race_history:
-			total_position += race.player_position
+		var valid_races = 0
+		
+		for race_id in race_history:
+			var race_results = RaceManager.get_race_results(race_id)
+			if race_results.is_empty():
+				continue
 			
-			if race.was_elimination:
+			var player_position = RaceManager.get_race_player_position(race_id)
+			if player_position <= 0:
+				continue
+			
+			total_position += player_position
+			valid_races += 1
+			
+			# Check if this was an elimination race
+			var race_number = valid_races  # Assuming races are stored in order
+			if race_number % 3 == 0:
 				stats.elimination_races += 1
 			
-			if race.player_position == 1:
+			# Count wins and podium finishes
+			if player_position == 1:
 				stats.wins += 1
 			
-			if race.player_position <= 3:
+			if player_position <= 3:
 				stats.podium_finishes += 1
 		
-		stats.average_position = float(total_position) / race_history.size()
+		# Calculate average position
+		if valid_races > 0:
+			stats.average_position = float(total_position) / valid_races
+	else:
+		print("[RunManager] WARNING: RaceManager not available for detailed statistics")
 	
 	return stats
 
-func get_race_history() -> Array[Dictionary]:
-	"""Get complete race history for the current run"""
+func get_race_history() -> Array[String]:
+	"""Get race ID history for the current run"""
 	return race_history.duplicate()
 
 # =============================
@@ -458,16 +505,31 @@ func debug_print_croaker_stats() -> void:
 		print("[RunManager] No current Croaker")
 
 func debug_print_race_results() -> void:
-	"""Debug function to print last race results"""
-	if last_race_results.is_empty():
-		print("[RunManager] No race results to display")
+	"""Debug function to print last race results (via RaceManager)"""
+	if not RaceManager:
+		print("[RunManager] RaceManager not available for race results")
 		return
 	
-	print("[RunManager] === LAST RACE RESULTS ===")
-	print("Race #%d | Player Position: %d/%d" % [races_completed, last_race_position, last_race_results.size()])
+	if race_history.is_empty():
+		print("[RunManager] No race history available")
+		return
 	
-	for i in range(last_race_results.size()):
-		var croaker = last_race_results[i]
+	var last_race_id = race_history.back()
+	var race_results = RaceManager.get_race_results(last_race_id)
+	
+	if race_results.is_empty():
+		print("[RunManager] No results available for last race: %s" % last_race_id)
+		return
+	
+	var player_position = RaceManager.get_race_player_position(last_race_id)
+	
+	print("[RunManager] === LAST RACE RESULTS ===")
+	print("Race #%d (ID: %s) | Player Position: %d/%d" % [
+		races_completed, last_race_id, player_position, race_results.size()
+	])
+	
+	for i in range(race_results.size()):
+		var croaker = race_results[i]
 		var player_indicator = " ★ (PLAYER)" if croaker == current_croaker else ""
 		print("  %d. %s%s (%s %s) - Jump: %.1f, Delay: %.1f" % [
 			i + 1,
@@ -490,6 +552,7 @@ func debug_print_run_state() -> void:
 		"ELIMINATION" if is_next_race_elimination() else "Regular"
 	])
 	print("AI Opponents: %d" % ai_croakers.size())
+	print("Race History: %d races (%s)" % [race_history.size(), str(race_history)])
 	
 	if is_run_active():
 		var stats = get_run_stats()
