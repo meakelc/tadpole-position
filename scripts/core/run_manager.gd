@@ -12,13 +12,14 @@ var ai_croakers: Array[Croaker] = []
 var eliminated_croakers: Array[Croaker] = []  # Track eliminated racers
 var races_completed: int = 0
 var current_run_active: bool = false
+var champion: Croaker = null
 
 # Race results storage
 var race_history: Array[Dictionary] = []  # Full race history for the run
 
 # Run configuration
 const DEFAULT_AI_COUNT := 15
-const MAX_RACES_PER_RUN := 9  # 3 rounds of 3 races each
+const MAX_RACES_PER_RUN := 10  # 3 rounds of 3 races each
 const CHAMPIONSHIP_START := 10  # Races 10+ are championship races (no elimination)
 
 # =============================
@@ -94,6 +95,10 @@ func is_run_complete() -> bool:
 	if not is_run_active():
 		return false
 	
+	# Run is complete if championship is finished
+	if is_championship_complete():
+		return true
+	
 	# Run is complete if we've finished all races or been eliminated
 	return races_completed >= MAX_RACES_PER_RUN or _is_player_eliminated()
 
@@ -103,7 +108,7 @@ func is_run_complete() -> bool:
 
 func _on_race_completed(results: Array, last_race_position: int) -> void:
 	"""
-	Enhanced race completion handler with automatic elimination processing
+	Enhanced race completion handler with championship and elimination processing
 	Called by RaceManager after each race
 	"""
 	print("[RunManager] Processing race completion for race #%d" % (races_completed + 1))
@@ -111,7 +116,8 @@ func _on_race_completed(results: Array, last_race_position: int) -> void:
 	# Increment race counter
 	races_completed += 1
 	
-	# Determine if this was an elimination race
+	# Check if this is a championship race
+	var is_championship = is_championship_race(races_completed)
 	var was_elimination = is_elimination_race(races_completed)
 	
 	# Store in race history
@@ -119,7 +125,8 @@ func _on_race_completed(results: Array, last_race_position: int) -> void:
 		"race_number": races_completed,
 		"results": results.duplicate(),
 		"player_position": last_race_position,
-		"was_elimination": was_elimination
+		"was_elimination": was_elimination,
+		"is_championship": is_championship
 	}
 	race_history.append(race_record)
 	
@@ -127,7 +134,15 @@ func _on_race_completed(results: Array, last_race_position: int) -> void:
 		races_completed, last_race_position, results.size()
 	])
 	
-	# AUTOMATIC ELIMINATION PROCESSING
+	# CHAMPIONSHIP RACE HANDLING
+	if is_championship:
+		print("[RunManager] *** CHAMPIONSHIP RACE COMPLETED ***")
+		_process_championship_race(results, races_completed)
+		current_run_active = false  # Mark run complete immediately after championship
+		print("[RunManager] *** RUN MARKED COMPLETE ***")
+		return
+	
+	# REGULAR ELIMINATION PROCESSING (non-championship races only)
 	if was_elimination:
 		print("[RunManager] *** ELIMINATION RACE DETECTED - Processing eliminations ***")
 		_process_elimination_race(results, races_completed)
@@ -193,6 +208,39 @@ func _process_elimination_race(results: Array, race_number: int) -> void:
 	
 	# Print post-elimination status
 	_print_post_elimination_status(race_number)
+
+func _process_championship_race(results: Array, _race_number: int) -> void:
+	"""
+	Process championship race completion
+	Declares champion and ends the run
+	"""
+	if results.is_empty():
+		print("[RunManager] ERROR: Empty championship race results")
+		return
+	
+	# First place is the champion
+	champion = results[0]
+	
+	print("[RunManager] *** CHAMPIONSHIP DECLARED ***")
+	print("[RunManager] Champion: %s (%s)" % [champion.name, champion.get_full_type_name()])
+	
+	# Check if player won the championship
+	if champion == current_croaker:
+		print("[RunManager] *** PLAYER WON THE CHAMPIONSHIP! ***")
+	else:
+		var player_position = results.find(current_croaker) + 1
+		print("[RunManager] Player finished %d in championship race" % player_position)
+	
+	# Print final championship standings
+	print("[RunManager] === FINAL CHAMPIONSHIP STANDINGS ===")
+	for i in range(results.size()):
+		var croaker = results[i]
+		var player_marker = " ★ (PLAYER)" if croaker == current_croaker else ""
+		var champion_marker = " 🏆 (CHAMPION)" if i == 0 else ""
+		print("  %d. %s%s%s (%s)" % [
+			i + 1, croaker.name, player_marker, champion_marker, croaker.get_full_type_name()
+		])
+	print("==============================================")
 
 func get_croakers_to_eliminate(race_number: int) -> int:
 	"""
@@ -675,6 +723,11 @@ func get_races_until_elimination() -> int:
 	var next_race = get_current_race_number()
 	return 3 - (next_race % 3) if (next_race % 3) != 0 else 0
 
+func is_championship_race(race_number: int = -1) -> bool:
+	"""Check if a race is the championship race (race 10)"""
+	var check_race = race_number if race_number != -1 else get_current_race_number()
+	return check_race >= CHAMPIONSHIP_START
+
 # =============================
 # RUN STATISTICS
 # =============================
@@ -719,6 +772,14 @@ func get_run_stats() -> Dictionary:
 func get_race_history() -> Array[Dictionary]:
 	"""Get complete race history for the current run"""
 	return race_history.duplicate()
+
+func get_champion() -> Croaker:
+	"""Get the championship winner (null if no championship completed)"""
+	return champion
+
+func is_championship_complete() -> bool:
+	"""Check if championship has been completed"""
+	return champion != null
 
 # =============================
 # DEBUG METHODS
@@ -766,6 +827,13 @@ func debug_print_run_state() -> void:
 			stats.wins, stats.podium_finishes, stats.average_position
 		])
 	
+	if is_championship_complete():
+		print("Championship Complete: %s is the champion!" % champion.name)
+		if champion == current_croaker:
+			print("*** PLAYER IS CHAMPION! ***")
+	elif get_current_race_number() >= CHAMPIONSHIP_START:
+		print("Championship Phase: Race #%d (Final 4)" % get_current_race_number())
+		
 	print("=================================")
 
 func debug_print_elimination_status() -> void:
@@ -872,3 +940,45 @@ func debug_simulate_elimination_race(race_number: int) -> void:
 		player_pos, "ELIMINATED" if _is_player_eliminated() else "ACTIVE"
 	])
 	print("=================================================")
+
+func debug_test_championship_logic() -> void:
+	"""
+	Debug method to test championship race logic
+	Simulates a championship race with 4 finalists
+	"""
+	if not is_run_active():
+		print("[RunManager] ERROR: No active run to test championship logic")
+		return
+	
+	print("[RunManager] === TESTING CHAMPIONSHIP LOGIC ===")
+	
+	# Simulate having 4 finalists (manual setup for testing)
+	eliminated_croakers.clear()
+	var all_croakers = [current_croaker] + ai_croakers
+	
+	# Keep only first 4 as finalists
+	var finalists = all_croakers.slice(0, 4)
+	for i in range(4, all_croakers.size()):
+		eliminated_croakers.append(all_croakers[i])
+	
+	print("Set up 4 finalists for championship test")
+	
+	# Simulate championship race (race 10)
+	var championship_results = finalists.duplicate()
+	championship_results.shuffle()
+	
+	var player_pos = championship_results.find(current_croaker) + 1
+	
+	# Set race count to 9 (so next completion is race 10)
+	races_completed = 9
+	
+	print("Simulating championship race #10...")
+	_on_race_completed(championship_results, player_pos)
+	
+	# Verify results
+	print("Championship complete: %s" % is_championship_complete())
+	print("Run active: %s" % current_run_active)
+	print("Champion: %s" % (champion.name if champion else "None"))
+	print("Player champion: %s" % (champion == current_croaker if champion else false))
+	
+	print("===============================================")
