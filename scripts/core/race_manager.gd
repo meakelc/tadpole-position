@@ -78,74 +78,11 @@ func _get_expected_croaker_count() -> int:
 		return 4   # Races 10+: After third elimination (final 4)
 
 # =============================
-# ELIMINATION HANDLING (NEW)
-# =============================
-
-func handle_elimination_race(race_results: Array[Croaker]) -> void:
-	"""Handle elimination logic after an elimination race"""
-	if not RunManager or race_results.is_empty():
-		print("[RaceManager] ERROR: Cannot handle elimination - missing data")
-		return
-	
-	var race_number = RunManager.races_completed + 1  # About to complete this race
-	var is_elimination = (race_number % 3 == 0)
-	
-	if not is_elimination:
-		print("[RaceManager] Not an elimination race - no eliminations needed")
-		return
-	
-	# Determine how many to eliminate based on race number
-	var elimination_count = _get_elimination_count_for_race(race_number)
-	if elimination_count <= 0:
-		print("[RaceManager] No eliminations needed for race %d" % race_number)
-		return
-	
-	# Get bottom finishers for elimination
-	var croakers_to_eliminate: Array[Croaker] = []
-	var total_racers = race_results.size()
-	
-	# Take the last N finishers (bottom of the standings)
-	for i in range(max(0, total_racers - elimination_count), total_racers):
-		if i < race_results.size():
-			croakers_to_eliminate.append(race_results[i])
-	
-	print("[RaceManager] Elimination Race #%d: Eliminating bottom %d of %d racers" % [
-		race_number, elimination_count, total_racers
-	])
-	
-	# Eliminate the croakers through RunManager
-	RunManager.eliminate_croakers(croakers_to_eliminate)
-	
-	# Verify expected counts after elimination
-	var remaining_count = RunManager.get_active_croakers().size()
-	var expected_remaining = _get_expected_croaker_count_after_elimination(race_number)
-	
-	if remaining_count != expected_remaining:
-		print("[RaceManager] WARNING: Unexpected remaining count after elimination")
-		print("[RaceManager] Expected: %d remaining, Actual: %d remaining" % [expected_remaining, remaining_count])
-
-func _get_elimination_count_for_race(race_number: int) -> int:
-	"""Get number of croakers to eliminate for a specific race"""
-	match race_number:
-		3: return 4   # Race 3: 16 → 12 (eliminate 4)
-		6: return 4   # Race 6: 12 → 8  (eliminate 4)  
-		9: return 4   # Race 9: 8 → 4   (eliminate 4)
-		_: return 0   # No eliminations for other races
-
-func _get_expected_croaker_count_after_elimination(race_number: int) -> int:
-	"""Get expected croaker count after elimination for specific race"""
-	match race_number:
-		3: return 12  # After race 3 elimination
-		6: return 8   # After race 6 elimination
-		9: return 4   # After race 9 elimination
-		_: return _get_expected_croaker_count()  # No change for non-elimination races
-
-# =============================
 # RACE RESULTS MANAGEMENT
 # =============================
 
 func store_race_results(results: Array[Croaker]) -> void:
-	"""Store race results and handle eliminations if needed"""
+	"""Store race results and notify RunManager"""
 	if results.is_empty():
 		print("[RaceManager] ERROR: Cannot store empty race results")
 		return
@@ -167,10 +104,9 @@ func store_race_results(results: Array[Croaker]) -> void:
 		last_race_position, results.size()
 	])
 	
-	# Handle elimination if this is an elimination race
-	handle_elimination_race(results)
+	# REMOVED: handle_elimination_race() call - let RunManager handle ALL elimination logic
 	
-	# Notify RunManager to update its race tracking
+	# Notify RunManager to update its race tracking and handle eliminations
 	if RunManager:
 		RunManager._on_race_completed(results, last_race_position)
 
@@ -183,6 +119,26 @@ func clear_race_results() -> void:
 func get_last_race_player_position() -> int:
 	"""Get player's position in the last race (1-indexed)"""
 	return last_race_position
+
+# =============================
+# HELPER METHODS (For Reference Only)
+# =============================
+
+func _get_elimination_count_for_race(race_number: int) -> int:
+	"""Get number of croakers to eliminate for a specific race"""
+	match race_number:
+		3: return 4   # Race 3: 16 → 12 (eliminate 4)
+		6: return 4   # Race 6: 12 → 8  (eliminate 4)  
+		9: return 4   # Race 9: 8 → 4   (eliminate 4)
+		_: return 0   # No eliminations for other races
+
+func _get_expected_croaker_count_after_elimination(race_number: int) -> int:
+	"""Get expected croaker count after elimination for specific race"""
+	match race_number:
+		3: return 12  # After race 3 elimination
+		6: return 8   # After race 6 elimination
+		9: return 4   # After race 9 elimination
+		_: return _get_expected_croaker_count()  # No change for non-elimination races
 
 # =============================
 # DEBUG METHODS
@@ -247,7 +203,7 @@ func debug_print_race_state() -> void:
 	print("Last Race Position: %d" % last_race_position)
 	print("Results Available: %s" % ("Yes" if not last_race_results.is_empty() else "No"))
 	
-	# NEW: Enhanced field status
+	# Enhanced field status
 	if RunManager:
 		var elimination_summary = RunManager.get_elimination_summary()
 		var expected_count = _get_expected_croaker_count()
@@ -263,7 +219,7 @@ func debug_print_race_state() -> void:
 	print("==================================")
 
 func debug_print_tournament_bracket() -> void:
-	"""NEW: Debug function to show tournament elimination bracket status"""
+	"""Debug function to show tournament elimination bracket status"""
 	if not RunManager:
 		print("[RaceManager] RunManager not available for bracket status")
 		return
