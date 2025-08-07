@@ -20,6 +20,10 @@ GameManager="*res://scripts/core/game_manager.gd"
 RunManager="*res://scripts/core/run_manager.gd"
 RaceManager="*res://scripts/core/race_manager.gd"
 
+[debug]
+
+gdscript/warnings/integer_division=0
+
 [editor]
 
 version_control/plugin_name="GitPlugin"

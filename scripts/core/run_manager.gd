@@ -9,6 +9,7 @@ extends Node
 # Current run data
 var current_croaker: Croaker = null
 var ai_croakers: Array[Croaker] = []
+var eliminated_croakers: Array[Croaker] = []  # NEW: Track eliminated racers
 var races_completed: int = 0
 var current_run_active: bool = false
 
@@ -63,9 +64,11 @@ func start_new_run(croaker_name: String = "Player Frog", brand_id: String = "", 
 	# Initialize run state
 	races_completed = 0
 	current_run_active = true
+	eliminated_croakers.clear()  # NEW: Clear elimination list
 	RaceManager.clear_race_results()
 	
 	print("[RunManager] New run started successfully")
+	print("[RunManager] Active racers: %d (Player + %d AI)" % [get_active_croakers().size(), ai_croakers.size()])
 	debug_print_croaker_stats()
 	return true
 
@@ -75,6 +78,7 @@ func end_current_run() -> void:
 	
 	current_croaker = null
 	ai_croakers.clear()
+	eliminated_croakers.clear()  # NEW: Clear elimination tracking
 	races_completed = 0
 	current_run_active = false
 	RaceManager.clear_race_results()
@@ -107,14 +111,105 @@ func _on_race_completed(results, last_race_position) -> void:
 
 func _is_player_eliminated() -> bool:
 	"""Check if player was eliminated in the last elimination race"""
-	if RaceManager.last_race_results.is_empty():
+	if not current_croaker:
 		return false
 	
-	# Check if last race was elimination and player finished poorly
-	var was_elimination = (races_completed % 3 == 0)
-	var player_position = RaceManager.get_last_race_player_position()
+	# Check if player is in eliminated list
+	return current_croaker in eliminated_croakers
+
+# =============================
+# ELIMINATION TRACKING (NEW)
+# =============================
+
+func get_active_croakers() -> Array[Croaker]:
+	"""
+	Get all racers that are still active (not eliminated)
+	Returns player + active AI croakers
+	"""
+	var active_croakers: Array[Croaker] = []
 	
-	return was_elimination and player_position > 2  # Bottom 2 eliminated
+	# Add player if not eliminated
+	if current_croaker and current_croaker not in eliminated_croakers:
+		active_croakers.append(current_croaker)
+	
+	# Add AI croakers that aren't eliminated
+	for ai_croaker in ai_croakers:
+		if ai_croaker not in eliminated_croakers:
+			active_croakers.append(ai_croaker)
+	
+	return active_croakers
+
+func eliminate_croakers(croakers_to_eliminate: Array[Croaker]) -> void:
+	"""
+	Move croakers from active to eliminated status
+	Input: Array of croakers to eliminate after elimination race
+	"""
+	if croakers_to_eliminate.is_empty():
+		print("[RunManager] No croakers to eliminate")
+		return
+	
+	print("[RunManager] Eliminating %d croakers:" % croakers_to_eliminate.size())
+	
+	for croaker in croakers_to_eliminate:
+		if croaker not in eliminated_croakers:
+			eliminated_croakers.append(croaker)
+			print("[RunManager] - Eliminated: %s (%s)" % [croaker.name, croaker.get_full_type_name()])
+			
+			# Special logging for player elimination
+			if croaker == current_croaker:
+				print("[RunManager] *** PLAYER ELIMINATED ***")
+	
+	var active_count = get_active_croakers().size()
+	var eliminated_count = eliminated_croakers.size()
+	print("[RunManager] Tournament status: %d active, %d eliminated" % [active_count, eliminated_count])
+	
+	# Validate expected elimination counts
+	_validate_elimination_counts()
+
+func get_eliminated_croakers() -> Array[Croaker]:
+	"""Get list of all eliminated croakers"""
+	return eliminated_croakers.duplicate()
+
+func is_croaker_eliminated(croaker: Croaker) -> bool:
+	"""Check if a specific croaker has been eliminated"""
+	return croaker in eliminated_croakers
+
+func get_elimination_summary() -> Dictionary:
+	"""Get summary of elimination status"""
+	var total_croakers = 1 + ai_croakers.size()  # Player + AI
+	var active_count = get_active_croakers().size()
+	var eliminated_count = eliminated_croakers.size()
+	
+	return {
+		"total_croakers": total_croakers,
+		"active_count": active_count,
+		"eliminated_count": eliminated_count,
+		"player_active": current_croaker and not is_croaker_eliminated(current_croaker),
+		"expected_next_elimination": _get_expected_elimination_count()
+	}
+
+func _validate_elimination_counts() -> void:
+	"""Validate that elimination counts match expected tournament progression"""
+	var active_count = get_active_croakers().size()
+	var round_number = (races_completed + 2) / 3  # Which elimination round we just completed
+	
+	var expected_counts = [16, 12, 8, 4]  # Expected active count after each elimination
+	
+	if round_number >= 1 and round_number <= 4:
+		var expected_active = expected_counts[round_number - 1]
+		if active_count != expected_active:
+			print("[RunManager] WARNING: Unexpected active count after round %d elimination" % round_number)
+			print("[RunManager] Expected: %d active, Actual: %d active" % [expected_active, active_count])
+
+func _get_expected_elimination_count() -> int:
+	"""Get expected number of eliminations for next elimination race"""
+	var next_elimination_race = ((races_completed / 3) + 1) * 3
+	
+	match next_elimination_race:
+		3: return 4   # 16 → 12
+		6: return 4   # 12 → 8  
+		9: return 4   # 8 → 4
+		_: return 0   # No more eliminations
 
 # =============================
 # CROAKER MANAGEMENT
@@ -525,6 +620,7 @@ func debug_print_croaker_stats() -> void:
 		print("  Personality: %s" % current_croaker.personality)
 		print("  Upgrades: %d" % current_croaker.upgrades_equipped.size())
 		print("  Warts: %d" % current_croaker.warts_equipped.size())
+		print("  Status: %s" % ("ELIMINATED" if _is_player_eliminated() else "ACTIVE"))
 		print("================================")
 	else:
 		print("[RunManager] No current Croaker")
@@ -538,7 +634,15 @@ func debug_print_run_state() -> void:
 		get_current_race_number(),
 		"ELIMINATION" if is_next_race_elimination() else "Regular"
 	])
-	print("AI Opponents: %d" % ai_croakers.size())
+	
+	# NEW: Enhanced debug info with elimination tracking
+	var elimination_summary = get_elimination_summary()
+	print("Tournament Status: %d active, %d eliminated (of %d total)" % [
+		elimination_summary.active_count,
+		elimination_summary.eliminated_count,
+		elimination_summary.total_croakers
+	])
+	print("Player Status: %s" % ("ACTIVE" if elimination_summary.player_active else "ELIMINATED"))
 	
 	if is_run_active():
 		var stats = get_run_stats()
@@ -548,7 +652,30 @@ func debug_print_run_state() -> void:
 	
 	print("=================================")
 
+func debug_print_elimination_status() -> void:
+	"""NEW: Debug function to print detailed elimination status"""
+	print("[RunManager] === ELIMINATION STATUS ===")
+	
+	var active_croakers = get_active_croakers()
+	var eliminated = get_eliminated_croakers()
+	
+	print("ACTIVE RACERS (%d):" % active_croakers.size())
+	for i in range(active_croakers.size()):
+		var croaker = active_croakers[i]
+		var player_marker = " ★" if croaker == current_croaker else ""
+		print("  %d. %s%s (%s)" % [i + 1, croaker.name, player_marker, croaker.get_full_type_name()])
+	
+	if not eliminated.is_empty():
+		print("ELIMINATED RACERS (%d):" % eliminated.size())
+		for i in range(eliminated.size()):
+			var croaker = eliminated[i]
+			var player_marker = " ★" if croaker == current_croaker else ""
+			print("  %s%s (%s)" % [croaker.name, player_marker, croaker.get_full_type_name()])
+	
+	print("===================================")
+
 func debug_print_all() -> void:
 	"""Print all debug information"""
 	debug_print_run_state()
 	debug_print_croaker_stats()
+	debug_print_elimination_status()  # NEW: Include elimination status
