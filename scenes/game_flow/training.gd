@@ -195,12 +195,13 @@ func _on_upgrade_selected(index: int) -> void:
 	training_rounds_completed += 1
 	
 	# Add a timer to proceed to next round or race
-	var timer = Timer.new()
-	timer.wait_time = 1.5
-	timer.one_shot = true
-	timer.timeout.connect(_proceed_after_selection)
-	add_child(timer)
-	timer.start()
+	#var timer = Timer.new()
+	#timer.wait_time = 1.5
+	#timer.one_shot = true
+	#timer.timeout.connect(_proceed_after_selection)
+	#add_child(timer)
+	#timer.start()
+	_proceed_after_selection()
 
 func _proceed_after_selection() -> void:
 	print("[Training] Training round %d/%d complete" % [training_rounds_completed, MAX_TRAINING_ROUNDS])

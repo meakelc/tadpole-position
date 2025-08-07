@@ -68,11 +68,13 @@ func reset_race_state() -> void:
 func set_visual_node(v_node: Node) -> void:
 	visual_node = v_node
 
-func update_race_state(delta: float) -> void:
+func update_race_state(delta: float) -> bool:
 	action_cooldown -= delta
 	if action_cooldown <= 0.0:
-		perform_action() 
-	# TODO: Update race visual
+		perform_action()
+		return true
+	return false
+	# Update race visual occurs in Run._race_tick
 
 func perform_action() -> void:
 	# Apply personality-based variance to jump performance
