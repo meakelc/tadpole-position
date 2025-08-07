@@ -14,9 +14,9 @@ var croakers: Array[Croaker] = []
 
 # Track settings
 const TRACK_WIDTH := 1000
-const RACER_HEIGHT := 40
+const RACER_HEIGHT := 25
 const RACER_BASE_WIDTH := 60
-const LANE_HEIGHT := 60
+const LANE_HEIGHT := 35
 const FINISH_LINE := TRACK_WIDTH - 50
 
 # Race state

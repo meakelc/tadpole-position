@@ -16,7 +16,7 @@ var current_run_active: bool = false
 var race_history: Array[Dictionary] = []  # Full race history for the run
 
 # Run configuration
-const DEFAULT_AI_COUNT := 3
+const DEFAULT_AI_COUNT := 15
 const MAX_RACES_PER_RUN := 9  # 3 rounds of 3 races each
 
 # =============================
@@ -201,6 +201,7 @@ func _apply_stat_variance(base_value: float, variance: float) -> float:
 	var max_val = base_value + variance
 	return randf_range(min_val, max_val)
 
+# Enhanced _generate_ai_croakers() method for run_manager.gd
 func _generate_ai_croakers() -> bool:
 	"""Generate AI opponents for the current run using croaker data"""
 	ai_croakers.clear()
@@ -209,48 +210,162 @@ func _generate_ai_croakers() -> bool:
 		print("[RunManager] WARNING: Using fallback AI generation")
 		return _generate_fallback_ai_croakers()
 	
-	# AI names for variety
-	var ai_names = ["Speed Demon", "Road Warrior", "Track Master", "Circuit King", "Jump Master"]
+	# Expanded AI names for 15+ unique opponents
+	var ai_names = [
+		"Speed Demon", "Road Warrior", "Track Master", "Circuit King", "Jump Master",
+		"Thunder Hop", "Velocity Viper", "Racing Rocket", "Turbo Toad", "Flash Frog",
+		"Blazing Baron", "Swift Shadow", "Lightning Leap", "Power Prowler", "Dash Duke",
+		"Storm Striker", "Rapid Rebel", "Zoom Zephyr", "Bullet Bounce", "Nitro Knight",
+		"Sonic Speedster", "Warp Warrior", "Hyper Hopper", "Mega Mover", "Ultra Ace"
+	]
+	
+	# Shuffle names to ensure variety
 	ai_names.shuffle()
 	
-	# Create AI opponents with different brands/models
+	# Get all available brand/model combinations for variety
+	var available_combinations: Array[Dictionary] = []
+	var brands = GameManager.croaker_data.brands
+	
+	for brand_id in brands.keys():
+		var brand_data = brands[brand_id]
+		if brand_data.has("models"):
+			for model_id in brand_data.models.keys():
+				available_combinations.append({
+					"brand_id": brand_id,
+					"model_id": model_id
+				})
+	
+	# Shuffle combinations to ensure variety
+	available_combinations.shuffle()
+	
+	print("[RunManager] Found %d brand/model combinations for AI generation" % available_combinations.size())
+	
+	# Create AI opponents with diverse brands/models
 	for i in range(DEFAULT_AI_COUNT):
 		var ai_name = ai_names[i % ai_names.size()]
-		var brand_model = _get_random_brand_model()
 		
+		# Ensure no duplicate names by adding suffix if needed
+		var original_name = ai_name
+		var name_suffix = 1
+		while _is_name_taken(ai_name):
+			ai_name = "%s %d" % [original_name, name_suffix]
+			name_suffix += 1
+		
+		# Select brand/model combination with variety
+		var brand_model: Dictionary
+		if not available_combinations.is_empty():
+			# Use combinations in order to ensure variety, cycle through if we need more than available
+			brand_model = available_combinations[i % available_combinations.size()]
+		else:
+			# Fallback to random selection
+			brand_model = _get_random_brand_model()
+		
+		# Create AI croaker
 		if brand_model.brand_id != "" and brand_model.model_id != "":
 			var ai_croaker = create_croaker_from_data(ai_name, brand_model.brand_id, brand_model.model_id)
 			if ai_croaker:
 				ai_croakers.append(ai_croaker)
+				print("[RunManager] Created AI #%d: %s (%s %s)" % [
+					i + 1, ai_croaker.name, ai_croaker.get_brand_name(), ai_croaker.get_model_name()
+				])
 				continue
 		
 		# Fallback if specific creation failed
 		print("[RunManager] Fallback: Creating basic AI croaker %s" % ai_name)
 		var ai = _create_fallback_croaker(ai_name)
-		ai.jump_distance = randf_range(4.5, 6.5)
-		ai.action_delay = randf_range(0.8, 1.2)
-		ai.stamina = randf_range(80.0, 120.0)
+		ai.jump_distance = randf_range(4.0, 7.0)  # Wider range for more variety
+		ai.action_delay = randf_range(0.7, 1.3)   # Wider range for more variety
+		ai.stamina = randf_range(75.0, 125.0)     # Wider range for more variety
+		
+		# Add some random personality variety for fallback AIs
+		var personalities = ["aggressive", "steady", "efficient", "powerful", "sporty"]
+		ai.personality = personalities[randi() % personalities.size()]
+		
 		ai_croakers.append(ai)
 	
-	print("[RunManager] Generated %d AI Croakers" % ai_croakers.size())
+	print("[RunManager] Generated %d AI Croakers with diverse stats and brands" % ai_croakers.size())
+	
+	# Debug: Print brand variety statistics
+	_debug_print_ai_variety()
+	
 	return ai_croakers.size() == DEFAULT_AI_COUNT
 
 func _generate_fallback_ai_croakers() -> bool:
 	"""Generate basic AI croakers if GameManager data is unavailable"""
 	ai_croakers.clear()
 	
-	var ai_names = ["Speed Demon", "Road Warrior", "Track Master"]
+	# Use the same expanded names for fallback
+	var ai_names = [
+		"Speed Demon", "Road Warrior", "Track Master", "Circuit King", "Jump Master",
+		"Thunder Hop", "Velocity Viper", "Racing Rocket", "Turbo Toad", "Flash Frog",
+		"Blazing Baron", "Swift Shadow", "Lightning Leap", "Power Prowler", "Dash Duke"
+	]
 	
 	for i in range(DEFAULT_AI_COUNT):
 		var ai_name = ai_names[i % ai_names.size()]
+		
+		# Ensure unique names
+		var original_name = ai_name
+		var name_suffix = 1
+		while _is_name_taken(ai_name):
+			ai_name = "%s %d" % [original_name, name_suffix]
+			name_suffix += 1
+		
 		var ai = _create_fallback_croaker(ai_name)
-		ai.jump_distance = randf_range(4.5, 6.5)
-		ai.action_delay = randf_range(0.8, 1.2)
-		ai.stamina = randf_range(80.0, 120.0)
+		ai.jump_distance = randf_range(4.0, 7.0)
+		ai.action_delay = randf_range(0.7, 1.3)
+		ai.stamina = randf_range(75.0, 125.0)
+		
+		# Add personality variety
+		var personalities = ["aggressive", "steady", "efficient", "powerful", "sporty"]
+		ai.personality = personalities[randi() % personalities.size()]
+		
 		ai_croakers.append(ai)
 	
 	print("[RunManager] Generated %d fallback AI Croakers" % ai_croakers.size())
 	return true
+
+func _is_name_taken(croaker_name: String) -> bool:
+	"""Check if a name is already taken by existing AI croakers or player"""
+	
+	# Check against player croaker
+	if current_croaker and current_croaker.name == croaker_name:
+		return true
+	
+	# Check against existing AI croakers
+	for ai in ai_croakers:
+		if ai.name == croaker_name:
+			return true
+	
+	return false
+
+func _debug_print_ai_variety() -> void:
+	"""Debug function to print AI brand/model variety statistics"""
+	if ai_croakers.is_empty():
+		return
+	
+	var brand_count: Dictionary = {}
+	var model_count: Dictionary = {}
+	var personality_count: Dictionary = {}
+	
+	for ai in ai_croakers:
+		# Count brands
+		var brand = ai.get_brand_name()
+		brand_count[brand] = brand_count.get(brand, 0) + 1
+		
+		# Count models
+		var model = ai.get_full_type_name()
+		model_count[model] = model_count.get(model, 0) + 1
+		
+		# Count personalities
+		personality_count[ai.personality] = personality_count.get(ai.personality, 0) + 1
+	
+	print("[RunManager] === AI VARIETY STATISTICS ===")
+	print("Total AI Croakers: %d" % ai_croakers.size())
+	print("Brand Distribution: %s" % brand_count)
+	print("Personality Distribution: %s" % personality_count)
+	print("Unique Models: %d" % model_count.size())
+	print("===========================================")
 
 func _get_random_brand_model() -> Dictionary:
 	"""Get a random brand and model combination from GameManager data"""
