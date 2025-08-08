@@ -651,63 +651,6 @@ func _get_random_brand_model() -> Dictionary:
 	}
 
 # =============================
-# CROAKER UPGRADES
-# =============================
-
-func apply_upgrade(upgrade_type: String, value: float) -> bool:
-	"""
-	Apply an upgrade to the current Croaker
-	Returns true if successful, false if failed
-	"""
-	if not current_croaker:
-		print("[RunManager] ERROR: No current Croaker to upgrade")
-		return false
-	
-	match upgrade_type:
-		"jump_distance":
-			current_croaker.jump_distance += value
-			current_croaker.jump_distance = max(0.1, current_croaker.jump_distance)  # Min cap
-			print("[RunManager] Applied jump upgrade: +%.1f (new total: %.1f)" % [
-				value, current_croaker.jump_distance
-			])
-			return true
-			
-		"action_delay":
-			current_croaker.action_delay += value  # Negative values make it faster
-			current_croaker.action_delay = max(0.1, current_croaker.action_delay)  # Min cap
-			print("[RunManager] Applied speed upgrade: %.1f (new delay: %.1f)" % [
-				value, current_croaker.action_delay
-			])
-			return true
-			
-		"stamina":
-			current_croaker.stamina += value
-			current_croaker.stamina = max(1.0, current_croaker.stamina)  # Min cap
-			print("[RunManager] Applied stamina upgrade: +%.1f (new total: %.1f)" % [
-				value, current_croaker.stamina
-			])
-			return true
-			
-		_:
-			print("[RunManager] ERROR: Unknown upgrade type: %s" % upgrade_type)
-			return false
-
-func can_apply_upgrade(upgrade_type: String, value: float) -> bool:
-	"""Check if an upgrade can be applied without breaking stat limits"""
-	if not current_croaker:
-		return false
-	
-	match upgrade_type:
-		"jump_distance":
-			return (current_croaker.jump_distance + value) >= 0.1
-		"action_delay":
-			return (current_croaker.action_delay + value) >= 0.1
-		"stamina":
-			return (current_croaker.stamina + value) >= 1.0
-		_:
-			return false
-
-# =============================
 # RACE MANAGEMENT
 # =============================
 func get_current_race_number() -> int:

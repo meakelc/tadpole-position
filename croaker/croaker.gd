@@ -50,6 +50,93 @@ func get_type_id() -> String:
 	return "%s_%s" % [brand_id, model_id] if brand_id != "" and model_id != "" else "unknown"
 
 # =============================
+# UPGRADE METHODS
+# =============================
+
+func apply_upgrade(upgrade_type: String, value: float) -> bool:
+	"""
+	Apply an upgrade to this Croaker's stats
+	Returns true if successful, false if failed
+	"""
+	match upgrade_type:
+		"jump_distance":
+			jump_distance += value
+			jump_distance = max(0.1, jump_distance)  # Min cap
+			print("[Croaker] '%s' applied jump upgrade: %+.1f (new total: %.1f)" % [
+				name, value, jump_distance
+			])
+			return true
+			
+		"action_delay":
+			action_delay += value  # Negative values make it faster
+			action_delay = max(0.1, action_delay)  # Min cap
+			print("[Croaker] '%s' applied speed upgrade: %+.1f (new delay: %.1f)" % [
+				name, value, action_delay
+			])
+			return true
+			
+		"stamina":
+			stamina += value
+			stamina = max(1.0, stamina)  # Min cap
+			print("[Croaker] '%s' applied stamina upgrade: %+.1f (new total: %.1f)" % [
+				name, value, stamina
+			])
+			return true
+			
+		_:
+			print("[Croaker] ERROR: '%s' unknown upgrade type: %s" % [name, upgrade_type])
+			return false
+
+func can_apply_upgrade(upgrade_type: String, value: float) -> bool:
+	"""
+	Check if an upgrade can be applied without breaking stat limits
+	Returns true if upgrade is valid, false otherwise
+	"""
+	match upgrade_type:
+		"jump_distance":
+			return (jump_distance + value) >= 0.1
+		"action_delay":
+			return (action_delay + value) >= 0.1
+		"stamina":
+			return (stamina + value) >= 1.0
+		_:
+			return false
+
+func get_upgrade_preview(upgrade_type: String, value: float) -> Dictionary:
+	"""
+	Preview what an upgrade would do without applying it
+	Returns dictionary with current, new, and change values
+	"""
+	var preview = {
+		"valid": false,
+		"current": 0.0,
+		"new": 0.0,
+		"change": value,
+		"stat_name": ""
+	}
+	
+	match upgrade_type:
+		"jump_distance":
+			preview.valid = can_apply_upgrade(upgrade_type, value)
+			preview.current = jump_distance
+			preview.new = max(0.1, jump_distance + value)
+			preview.stat_name = "Jump Distance"
+		"action_delay":
+			preview.valid = can_apply_upgrade(upgrade_type, value)
+			preview.current = action_delay
+			preview.new = max(0.1, action_delay + value)
+			preview.stat_name = "Action Delay"
+		"stamina":
+			preview.valid = can_apply_upgrade(upgrade_type, value)
+			preview.current = stamina
+			preview.new = max(1.0, stamina + value)
+			preview.stat_name = "Stamina"
+		_:
+			preview.stat_name = "Unknown"
+	
+	return preview
+
+# =============================
 # RACE STATE
 # =============================
 
