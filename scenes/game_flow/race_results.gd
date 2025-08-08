@@ -294,8 +294,7 @@ func _on_continue_pressed() -> void:
 	# Check if run is complete (won final race)
 	if is_elimination_race and player_position == 1 and RunManager.races_completed >= 10:
 		print("[RaceResults] Player won the championship!")
-		# TODO: Transition to victory scene
-		GameManager.change_scene("res://scenes/main_menu.tscn")
+		GameManager.change_scene("res://scenes/run/victory.tscn")
 		return
 	
 	# Normal progression - go to wart selection
