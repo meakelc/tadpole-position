@@ -285,10 +285,9 @@ func _on_continue_pressed() -> void:
 	print("[RaceResults] Continue button pressed")
 	
 	# Check for elimination first
-	if is_elimination_race and player_position > 2:
+	if is_elimination_race and player_position > 4:
 		print("[RaceResults] Player eliminated! Ending run...")
-		# TODO: Transition to run results/game over scene
-		GameManager.change_scene("res://scenes/main_menu.tscn")
+		GameManager.change_scene("res://scenes/run/eliminated.tscn")
 		return
 	
 	# Check if run is complete (won final race)
