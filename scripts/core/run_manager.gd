@@ -598,6 +598,11 @@ func _is_name_taken(croaker_name: String) -> bool:
 	
 	return false
 
+func upgrade_ai_croakers() -> void:
+	for croaker in ai_croakers:
+		croaker.apply_upgrade("jump_distance", 3.1)
+		
+
 func _debug_print_ai_variety() -> void:
 	"""Debug function to print AI brand/model variety statistics"""
 	if ai_croakers.is_empty():

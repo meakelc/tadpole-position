@@ -13,9 +13,6 @@ extends Control
 var training_rounds_completed := 0
 const MAX_TRAINING_ROUNDS := 3
 
-# Run state
-var current_croaker: Croaker = null
-
 # Upgrade data structure
 class Upgrade:
 	var display_text: String
@@ -52,9 +49,6 @@ func _ready() -> void:
 			GameManager.change_scene("res://scenes/main_menu.tscn")
 			return
 	
-	# Set up croakers
-	_set_player_croaker()
-	
 	# Set up UI
 	back_button.text = "Back to Main Menu"
 	back_button.pressed.connect(_on_back_pressed)
@@ -62,9 +56,6 @@ func _ready() -> void:
 	# Display current stats and generate first upgrades
 	_update_stats_display()
 	_generate_upgrade_options()
-
-func _set_player_croaker() -> void:
-	current_croaker = RunManager.current_croaker
 
 func _update_stats_display() -> void:
 	if not RunManager or not RunManager.current_croaker:
@@ -169,7 +160,7 @@ func _apply_upgrade_to_croaker(upgrade: Upgrade) -> void:
 		return
 	
 	# Apply primary upgrade
-	var success = current_croaker.apply_upgrade(upgrade.type, upgrade.value)
+	var success = RunManager.current_croaker.apply_upgrade(upgrade.type, upgrade.value)
 	if success:
 		print("[Training] Applied primary upgrade: %s %.1f" % [upgrade.type, upgrade.value])
 	else:
@@ -177,11 +168,14 @@ func _apply_upgrade_to_croaker(upgrade: Upgrade) -> void:
 	
 	# Apply secondary upgrade if it exists
 	if upgrade.secondary_type != "":
-		var secondary_success = current_croaker.apply_upgrade(upgrade.secondary_type, upgrade.secondary_value)
+		var secondary_success = RunManager.current_croaker.apply_upgrade(upgrade.secondary_type, upgrade.secondary_value)
 		if secondary_success:
 			print("[Training] Applied secondary upgrade: %s %.1f" % [upgrade.secondary_type, upgrade.secondary_value])
 		else:
 			print("[Training] ERROR: Failed to apply secondary upgrade: %s %.1f" % [upgrade.secondary_type, upgrade.secondary_value])
+	
+	# Apply upgrades to AI croakers
+	RunManager.upgrade_ai_croakers()
 
 func _on_upgrade_selected(index: int) -> void:
 	if index >= current_upgrades.size():

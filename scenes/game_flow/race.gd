@@ -290,23 +290,5 @@ func _on_continue_pressed() -> void:
 			
 	print("[Race] Race complete - results stored in RaceManager")
 	
-	# Get current race number and player position from RunManager
-	var current_race_number = RunManager.races_completed
-	var player_position = RaceManager.get_last_race_player_position()
-	
-	# Check for elimination
-	if current_race_number % 3 == 0:  # Every 3rd race is elimination
-		print("[Race] This was an elimination race!")
-		if player_position > 2:  # Bottom 2 eliminated
-			print("[Race] Player eliminated!")
-			GameManager.change_scene("res://scenes/game_flow/run_results.tscn")
-			return
-	
-	# Check if run is complete (won championship)
-	if RunManager.is_run_complete():
-		print("[Race] Run complete! Proceeding to final results...")
-		GameManager.change_scene("res://scenes/game_flow/run_results.tscn")
-		return
-	
 	# Continue to post-race rewards
 	GameManager.change_scene("res://scenes/game_flow/race_results.tscn")

@@ -40,7 +40,7 @@ func _update_menu_state() -> void:
 	"""Update menu visibility and info based on current run state"""
 	
 	# Check if RunManager is available and has an active run
-	var has_active_run = RunManager and RunManager.is_run_active()
+	var has_active_run = RunManager and RunManager.is_run_active() and !RunManager.is_run_complete()
 	
 	if has_active_run:
 		# Show continue option and croaker info
