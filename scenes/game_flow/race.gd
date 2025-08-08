@@ -1,4 +1,4 @@
-# race.gd - Race scene script with brand/model support
+# race.gd - Race scene script with RaceManager integration
 extends Control
 
 # UI elements
@@ -9,27 +9,39 @@ extends Control
 # Racer visuals - will be created dynamically
 var racer_visuals: Array[Control] = []
 
-# Racing state
+# Racing Croakers
 var croakers: Array[Croaker] = []
 
 # Track settings
 const TRACK_WIDTH := 1000
-const RACER_HEIGHT := 40
+const RACER_HEIGHT := 25
 const RACER_BASE_WIDTH := 60
-const LANE_HEIGHT := 60
+const LANE_HEIGHT := 35
 const FINISH_LINE := TRACK_WIDTH - 50
 
 # Race state
 var race_active := false
 var race_finished := false
+var skip_race := false
 var race_results: Array[Croaker] = []
 
 func _ready() -> void:
 	print("[Race] Race scene ready")
 	
-	# Verify we have a Croaker from training
-	if not GameManager.current_croaker:
-		print("[Race] ERROR: No Croaker found! Returning to training...")
+	# Validate RunManager is available and has active run
+	if not RunManager:
+		print("[Race] ERROR: RunManager not found! Returning to main menu...")
+		GameManager.change_scene("res://scenes/main_menu.tscn")
+		return
+	
+	if not RunManager.is_run_active():
+		print("[Race] ERROR: No active run found! Returning to training...")
+		GameManager.change_scene("res://scenes/game_flow/training.tscn")
+		return
+	
+	# Verify we have a Croaker from RunManager
+	if not RunManager.current_croaker:
+		print("[Race] ERROR: No current Croaker found in RunManager! Returning to training...")
 		GameManager.change_scene("res://scenes/game_flow/training.tscn")
 		return
 	
@@ -38,8 +50,13 @@ func _ready() -> void:
 	continue_button.text = "Skip Race"
 	continue_button.pressed.connect(_on_continue_pressed)
 	
-	# Get race lineup from GameManager
-	croakers = GameManager.get_race_lineup()
+	# Get race lineup from RaceManager
+	croakers = RaceManager.get_race_lineup()
+	
+	if croakers.is_empty():
+		print("[Race] ERROR: Empty race lineup from RunManager! Returning to training...")
+		GameManager.change_scene("res://scenes/game_flow/training.tscn")
+		return
 	
 	# Create racer visuals based on Croaker data
 	_create_racer_visuals()
@@ -47,13 +64,14 @@ func _ready() -> void:
 	# Position and style racers
 	_setup_racers()
 	
-	# Start race after a brief delay
-	var timer = Timer.new()
-	timer.wait_time = 2.0
-	timer.one_shot = true
-	timer.timeout.connect(_start_race)
-	add_child(timer)
-	timer.start()
+	# Add countdown effect
+	var countdown_texts = ["3...", "2...", "1...", "GO!"]
+	for i in range(countdown_texts.size()):
+		await get_tree().create_timer(0.5).timeout
+		racing_label.text = countdown_texts[i]
+	
+	# Start race after countdown
+	_start_race()
 
 func _create_racer_visuals() -> void:
 	# Clear any existing visuals
@@ -146,12 +164,12 @@ func _setup_racers() -> void:
 	# Add finish line
 	var finish_line_visual = ColorRect.new()
 	finish_line_visual.color = Color.WHITE
-	finish_line_visual.size = Vector2(4, LANE_HEIGHT * 4)
+	finish_line_visual.size = Vector2(4, LANE_HEIGHT * croakers.size())
 	finish_line_visual.position = Vector2(FINISH_LINE, 0)
 	track_container.add_child(finish_line_visual)
 	
-	# Highlight player's lane
-	if croakers[0] == GameManager.current_croaker:
+	# Highlight player's lane (player should be first in lineup from RunManager)
+	if croakers[0] == RunManager.current_croaker:
 		var highlight = ColorRect.new()
 		highlight.color = Color(0.2, 0.8, 0.2, 0.1)
 		highlight.size = Vector2(TRACK_WIDTH, LANE_HEIGHT)
@@ -164,15 +182,9 @@ func _start_race() -> void:
 	race_active = true
 	race_finished = false
 	race_results.clear()
-	
-	# Add countdown effect
-	var countdown_texts = ["3...", "2...", "1...", "GO!"]
-	for i in range(countdown_texts.size()):
-		await get_tree().create_timer(0.5).timeout
-		racing_label.text = countdown_texts[i]
 
-func _process(delta: float) -> void:
-	if not race_active or race_finished:
+func _race_tick(delta: float) -> void:
+	if (not race_active or race_finished) and !skip_race:
 		return
 	
 	# Update each Croaker's race state
@@ -184,15 +196,16 @@ func _process(delta: float) -> void:
 		if croaker in race_results:
 			continue
 		
-		# Update Croaker logic
-		croaker.update_race_state(delta)
+		# Update Croaker, store whether action was taken
+		var action_taken = croaker.update_race_state(delta)
 		
 		# Convert position to pixels and update visual
 		var pixel_position = croaker.position * 10.0  # Scale factor for visibility
 		racer_visual.position.x = min(10 + pixel_position, FINISH_LINE + 50)
 		
 		# Add jump animation when action performed
-		if croaker.action_cooldown > croaker.action_delay - 0.1:
+		#if croaker.action_cooldown > croaker.action_delay - 0.1:
+		if action_taken and !skip_race:
 			var tween = create_tween()
 			var body = racer_visual.get_node("Body")
 			tween.tween_property(body, "position:y", -10, 0.1)
@@ -202,9 +215,13 @@ func _process(delta: float) -> void:
 		if pixel_position >= FINISH_LINE:
 			_croaker_finished(croaker)
 			
-			# Check if all racers finished
-			if race_results.size() == croakers.size():
-				_finish_race()
+	# Check if all racers finished
+	if race_results.size() == croakers.size():
+		_finish_race()
+
+
+func _process(delta: float) -> void:
+	_race_tick(delta)
 
 func _croaker_finished(croaker: Croaker) -> void:
 	if croaker not in race_results:
@@ -217,7 +234,7 @@ func _croaker_finished(croaker: Croaker) -> void:
 		])
 		
 		# Special message for player
-		if croaker == GameManager.current_croaker:
+		if croaker == RunManager.current_croaker:
 			racing_label.text = "You finished #%d!" % finishing_position
 
 func _finish_race() -> void:
@@ -225,11 +242,11 @@ func _finish_race() -> void:
 	race_finished = true
 	race_active = false
 	
-	# Store complete race results in GameManager (ordered by finishing position)
-	GameManager.last_race_results = race_results.duplicate()
+	# Store race results in RunManager
+	RaceManager.store_race_results(race_results.duplicate())
 	
-	# Find player position
-	var player_finishing_position = race_results.find(GameManager.current_croaker) + 1
+	# Find player position for UI display
+	var player_finishing_position = race_results.find(RunManager.current_croaker) + 1
 	
 	# Update UI based on result
 	if player_finishing_position == 1:
@@ -259,38 +276,37 @@ func _finish_race() -> void:
 	continue_button.text = "Continue"
 
 func _on_continue_pressed() -> void:
-	if race_finished:
-		print("[Race] Race complete - saving results")
+	# Do nothing if race hasn't started yet
+	#if !race_started:
+	#	return
 		
-		# Ensure race results are stored in GameManager
-		GameManager.last_race_results = race_results.duplicate()
-		
-		# Store player's finishing position for backward compatibility
-		GameManager.last_race_position = race_results.find(GameManager.current_croaker) + 1
-		GameManager.races_completed += 1
-		
-		# TODO: Check for elimination
-		if GameManager.races_completed % 3 == 0:  # Every 3rd race is elimination
-			print("[Race] This was an elimination race!")
-			if GameManager.last_race_position > 2:  # Bottom 2 eliminated
-				print("[Race] Player eliminated!")
-				GameManager.change_scene("res://scenes/game_flow/run_results.tscn")
-				return
-		
-		# Continue to post-race rewards
-		GameManager.change_scene("res://scenes/game_flow/race_results.tscn")
-	else:
+	if !race_finished:
 		print("[Race] Skipping race")
-		# Simulate a random finish position for skipped race
-		var simulated_position = randi_range(1, 4)
-		GameManager.last_race_position = simulated_position
-		
-		# Create simulated race results for skipped races
-		var all_racers = GameManager.get_race_lineup()
-		
-		# Shuffle racers for random finish order
-		all_racers.shuffle()
-		GameManager.last_race_results = all_racers.duplicate()
-		
-		GameManager.races_completed += 1
-		GameManager.change_scene("res://scenes/game_flow/race_results.tscn")
+		skip_race = true
+
+		# Fast progress race
+		while !race_finished:
+			_race_tick(0.01)
+			
+	print("[Race] Race complete - results stored in RaceManager")
+	
+	# Get current race number and player position from RunManager
+	var current_race_number = RunManager.races_completed
+	var player_position = RaceManager.get_last_race_player_position()
+	
+	# Check for elimination
+	if current_race_number % 3 == 0:  # Every 3rd race is elimination
+		print("[Race] This was an elimination race!")
+		if player_position > 2:  # Bottom 2 eliminated
+			print("[Race] Player eliminated!")
+			GameManager.change_scene("res://scenes/game_flow/run_results.tscn")
+			return
+	
+	# Check if run is complete (won championship)
+	if RunManager.is_run_complete():
+		print("[Race] Run complete! Proceeding to final results...")
+		GameManager.change_scene("res://scenes/game_flow/run_results.tscn")
+		return
+	
+	# Continue to post-race rewards
+	GameManager.change_scene("res://scenes/game_flow/race_results.tscn")
